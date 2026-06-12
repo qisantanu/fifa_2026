@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cyber-black: #0a0a0c;
+  --color-cyber-blue: #00f2ff;
+  --color-cyber-magenta: #ff00c8;
+  --color-cyber-dark-blue: #0f172a;
+  --color-cyber-glass: rgba(15, 23, 42, 0.7);
+  
+  --shadow-neon: 0 0 10px #00f2ff, 0 0 20px #00f2ff;
+  --shadow-neon-magenta: 0 0 10px #ff00c8, 0 0 20px #ff00c8;
+  
+  --background-image-grid-pattern: linear-gradient(to right, rgba(0, 242, 255, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 242, 255, 0.1) 1px, transparent 1px);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-cyber-black);
+    color: white;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5) 0%, rgba(10, 10, 12, 1) 100%),
+      linear-gradient(to right, rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background-color: var(--color-cyber-glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  
+  .neon-border {
+    border-color: var(--color-cyber-blue);
+    box-shadow: var(--shadow-neon);
+  }
+
+  .cyber-button {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    background-color: transparent;
+    border: 2px solid var(--color-cyber-blue);
+    color: var(--color-cyber-blue);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+  }
+  
+  .cyber-button:hover {
+    background-color: var(--color-cyber-blue);
+    color: var(--color-cyber-black);
+    box-shadow: var(--shadow-neon);
+  }
+}
