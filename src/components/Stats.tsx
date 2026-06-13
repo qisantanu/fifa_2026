@@ -9,7 +9,11 @@ interface StatsProps {
 }
 
 const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ matches, teams }) => {
-  const completedMatches = matches.filter(m => m['Team 1 Score'] !== null && m['Team 2 Score'] !== null);
+  const completedMatches = matches.filter(m => 
+    typeof m['Team 1 Score'] === 'number' && 
+    typeof m['Team 2 Score'] === 'number' &&
+    m.Winner && m.Winner !== 'TBD'
+  );
   
   const teamStats = teams.map(team => {
     const teamMatches = completedMatches.filter(m => m['Team 1'] === team.TeamName || m['Team 2'] === team.TeamName);
@@ -166,7 +170,11 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
 };
 
 const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
-  const completedMatches = matches.filter(m => m['Team 1 Score'] !== null && m['Team 2 Score'] !== null);
+  const completedMatches = matches.filter(m => 
+    typeof m['Team 1 Score'] === 'number' && 
+    typeof m['Team 2 Score'] === 'number' &&
+    m.Winner && m.Winner !== 'TBD'
+  );
   
   const goalsByStage = completedMatches.reduce((acc: any, match) => {
     const totalGoals = (match['Team 1 Score'] || 0) + (match['Team 2 Score'] || 0);
@@ -218,25 +226,25 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
     .slice(0, 5);
 
   return (
-    <div className="space-y-12 pb-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="space-y-8 md:space-y-12 pb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-8 h-[400px] flex flex-col"
+          className="glass-card p-4 md:p-8 h-[350px] md:h-[400px] flex flex-col"
         >
-          <h3 className="text-lg font-black italic text-cyber-blue uppercase mb-8 flex items-center gap-4">
+          <h3 className="text-sm md:text-lg font-black italic text-cyber-blue uppercase mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
             <span className="w-2 h-2 bg-cyber-blue rounded-full animate-ping"></span>
             Goal Intensity // By Stage
           </h3>
-          <div className="flex-1 w-full">
+          <div className="flex-1 w-full min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={goalsByStage}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
                 <XAxis dataKey="stage" stroke="#94a3b8" fontSize={10} tick={{ fill: '#94a3b8' }} axisLine={{ stroke: '#ffffff20' }} />
                 <YAxis stroke="#94a3b8" fontSize={10} tick={{ fill: '#94a3b8' }} axisLine={{ stroke: '#ffffff20' }} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #00f2ff', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #00f2ff', borderRadius: '8px', fontSize: '10px' }}
                   itemStyle={{ color: '#00f2ff', fontWeight: 'bold' }}
                 />
                 <Bar dataKey="goals">
@@ -252,24 +260,24 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-8 flex flex-col justify-between"
+          className="glass-card p-4 md:p-8 flex flex-col justify-between"
         >
           <div>
-            <h3 className="text-lg font-black italic text-cyber-magenta uppercase mb-8 flex items-center gap-4">
+            <h3 className="text-sm md:text-lg font-black italic text-cyber-magenta uppercase mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
               <span className="w-2 h-2 bg-cyber-magenta rounded-full"></span>
               Golden Boot // Leaderboard
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {topScorers.length > 0 ? (
                 topScorers.map((scorer, i) => (
                   <div key={scorer.name} className="flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-mono text-gray-500">0{i + 1}</span>
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <span className="text-[10px] font-mono text-gray-500">0{i + 1}</span>
                       <div className="flex flex-col">
-                        <span className="text-white font-bold tracking-tight group-hover:text-cyber-blue transition-colors uppercase">
+                        <span className="text-xs md:text-white font-bold tracking-tight group-hover:text-cyber-blue transition-colors uppercase">
                           {scorer.name}
                         </span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center gap-1 mt-0.5">
                           <div className="w-3 h-2 overflow-hidden rounded-sm border border-white/10 flex-shrink-0">
                             {scorer.flagCode && (
                               <img 
@@ -279,40 +287,40 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
                               />
                             )}
                           </div>
-                          <span className="text-[8px] font-mono text-gray-500 uppercase">{scorer.team}</span>
+                          <span className="text-[7px] md:text-[8px] font-mono text-gray-500 uppercase">{scorer.team}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-1 w-24 bg-white/5 overflow-hidden rounded-full">
+                      <div className="hidden sm:block h-1 w-16 md:w-24 bg-white/5 overflow-hidden rounded-full">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${(scorer.goals / (topScorers[0]?.goals || 1)) * 100}%` }}
                           className="h-full bg-cyber-magenta"
                         />
                       </div>
-                      <span className="text-cyber-magenta font-black italic w-8 text-right">{scorer.goals}</span>
+                      <span className="text-cyber-magenta font-black italic text-sm md:text-base w-6 md:w-8 text-right">{scorer.goals}</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-gray-500 text-xs font-mono py-8 text-center uppercase tracking-widest">
+                <div className="text-gray-500 text-[10px] font-mono py-8 text-center uppercase tracking-widest">
                   Awaiting Data Streams...
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-between">
+          <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/5 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] font-mono text-gray-500 uppercase">Total Quantum Goals</span>
-              <span className="text-2xl font-black text-white italic">
+              <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase">Total Quantum Goals</span>
+              <span className="text-xl md:text-2xl font-black text-white italic">
                 {completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0)}
               </span>
             </div>
             <div className="flex flex-col items-end text-right">
-              <span className="text-[10px] font-mono text-gray-500 uppercase">Goals/Match</span>
-              <span className="text-2xl font-black text-cyber-blue italic">
+              <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase">Goals/Match</span>
+              <span className="text-xl md:text-2xl font-black text-cyber-blue italic">
                 {(completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0) / (completedMatches.length || 1)).toFixed(2)}
               </span>
             </div>
@@ -322,20 +330,20 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
       
       <AnalyticalInsights matches={matches} teams={teams} />
 
-      <div className="glass-card p-6 bg-gradient-to-r from-cyber-blue/10 to-transparent">
-        <h4 className="text-xs font-mono text-cyber-blue uppercase tracking-widest mb-4">Network Status</h4>
-        <div className="flex flex-wrap gap-8">
+      <div className="glass-card p-4 md:p-6 bg-gradient-to-r from-cyber-blue/10 to-transparent">
+        <h4 className="text-[10px] md:text-xs font-mono text-cyber-blue uppercase tracking-widest mb-4">Network Status</h4>
+        <div className="flex flex-wrap gap-4 md:gap-8">
             <div className="flex items-center gap-2">
                 <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-                <span className="text-[10px] font-mono text-gray-400 uppercase">Excel Stream: Online</span>
+                <span className="text-[8px] md:text-[10px] font-mono text-gray-400 uppercase">Excel Stream: Online</span>
             </div>
             <div className="flex items-center gap-2">
                 <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-                <span className="text-[10px] font-mono text-gray-400 uppercase">Visual Core: Optimized</span>
+                <span className="text-[8px] md:text-[10px] font-mono text-gray-400 uppercase">Visual Core: Optimized</span>
             </div>
             <div className="flex items-center gap-2">
                 <div className="w-1 h-1 bg-cyber-blue rounded-full animate-ping"></div>
-                <span className="text-[10px] font-mono text-gray-400 uppercase">A.I. Analysis: Active</span>
+                <span className="text-[8px] md:text-[10px] font-mono text-gray-400 uppercase">A.I. Analysis: Active</span>
             </div>
         </div>
       </div>
