@@ -22,15 +22,21 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
     let teamTotalGoals = 0;
     let goalsConceded = 0;
     let cleanSheets = 0;
+    let yellowCards = 0;
+    let redCards = 0;
     
     teamMatches.forEach(m => {
       const isTeam1 = m['Team 1'] === team.TeamName;
       const scorersStr = isTeam1 ? m['Team 1 scorers'] : m['Team 2 scorers'];
       const teamScore = isTeam1 ? m['Team 1 Score'] : m['Team 2 Score'];
       const opponentScore = isTeam1 ? m['Team 2 Score'] : m['Team 1 Score'];
+      const yCards = (isTeam1 ? m['Team 1 Yellow'] : m['Team 2 Yellow']) || 0;
+      const rCards = (isTeam1 ? m['Team 1 Red'] : m['Team 2 Red']) || 0;
       
       teamTotalGoals += (teamScore || 0);
       goalsConceded += (opponentScore || 0);
+      yellowCards += yCards;
+      redCards += rCards;
       if (opponentScore === 0) cleanSheets++;
 
       if (scorersStr) {
@@ -44,6 +50,7 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
     
     const topScorerGoals = Math.max(...Object.values(scorerCounts), 0);
     const dependency = teamTotalGoals > 0 ? (topScorerGoals / teamTotalGoals) * 100 : 0;
+    const fairPlayPoints = (yellowCards * 1) + (redCards * 3);
 
     return {
       name: team.TeamName,
@@ -53,12 +60,17 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
       totalGoals: teamTotalGoals,
       goalsConceded,
       cleanSheets,
-      topScorerGoals
+      topScorerGoals,
+      yellowCards,
+      redCards,
+      fairPlayPoints
     };
-  }).filter(t => t.totalGoals > 0 || t.goalsConceded > 0);
+  }).filter(t => t.totalGoals > 0 || t.goalsConceded > 0 || t.yellowCards > 0 || t.redCards > 0);
 
   const offensiveStats = [...teamStats].sort((a, b) => b.totalGoals - a.totalGoals).slice(0, 5);
   const defensiveStats = [...teamStats].sort((a, b) => a.goalsConceded - b.goalsConceded || b.cleanSheets - a.cleanSheets).slice(0, 5);
+  const fairPlayStats = [...teamStats].sort((a, b) => a.fairPlayPoints - b.fairPlayPoints).slice(0, 5);
+  const disciplineStats = [...teamStats].sort((a, b) => b.fairPlayPoints - a.fairPlayPoints).slice(0, 5);
   const balanceStats = [...teamStats].sort((a, b) => a.dependency - b.dependency).slice(0, 5);
   const noGoalsTeams = teams.filter(t => !teamStats.find(ts => ts.name === t.TeamName)?.totalGoals && completedMatches.some(m => m['Team 1'] === t.TeamName || m['Team 2'] === t.TeamName));
 
@@ -143,6 +155,66 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
                      </svg>
                      <span className="absolute text-[8px] font-black text-white">{team.uniqueScorers}</span>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        {/* Fair Play Index */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 border-l-4 border-l-green-500/50">
+          <h3 className="text-sm font-black italic text-green-500 uppercase mb-6 flex items-center gap-3">
+            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
+            Fair Play // Index
+          </h3>
+          <div className="space-y-4">
+            {fairPlayStats.map((team, i) => (
+              <div key={team.name} className="flex items-center justify-between group">
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-mono text-gray-500">{i + 1}</span>
+                  <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm" alt="" />
+                  <span className="text-xs font-bold text-white uppercase">{team.name}</span>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-yellow-500">{team.yellowCards}</span>
+                        <div className="w-2 h-3 bg-yellow-500 rounded-sm"></div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] font-bold text-red-500">{team.redCards}</span>
+                        <div className="w-2 h-3 bg-red-500 rounded-sm"></div>
+                    </div>
+                  </div>
+                  <div className="text-right min-w-[30px]">
+                    <span className="text-lg font-black text-green-500 italic">{team.fairPlayPoints}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Discipline Alert */}
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 border-l-4 border-l-red-500/50">
+          <h3 className="text-sm font-black italic text-red-500 uppercase mb-6 flex items-center gap-3">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
+            Discipline // Alert
+          </h3>
+          <div className="space-y-4">
+            {disciplineStats.slice(0, 5).map((team) => (
+              <div key={team.name} className="flex items-center justify-between group">
+                <div className="flex items-center gap-4">
+                  <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm grayscale group-hover:grayscale-0 transition-all" alt="" />
+                  <span className="text-xs font-bold text-white uppercase">{team.name}</span>
+                </div>
+                <div className="flex items-center gap-4 flex-1 max-w-[150px] ml-4">
+                  <div className="h-1 flex-1 bg-red-500/10 overflow-hidden rounded-full">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${(team.fairPlayPoints / (disciplineStats[0]?.fairPlayPoints || 1)) * 100}%` }} className="h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                  </div>
+                  <span className="text-red-500 font-mono font-black italic w-6 text-right">{team.fairPlayPoints}</span>
                 </div>
               </div>
             ))}

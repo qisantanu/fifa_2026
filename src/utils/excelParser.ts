@@ -12,6 +12,10 @@ export interface Match {
   Stage: string;
   Winner: string | null;
   Group: string | null;
+  'Team 1 Yellow'?: number;
+  'Team 2 Yellow'?: number;
+  'Team 1 Red'?: number;
+  'Team 2 Red'?: number;
 }
 
 export const excelDateToJS = (serial: number | string): Date => {
