@@ -7,6 +7,8 @@ export interface Match {
   'Team 2': string;
   'Team 1 Score': number | null;
   'Team 2 Score': number | null;
+  'Team 1 scorers'?: string;
+  'Team 2 scorers'?: string;
   Stage: string;
   Winner: string | null;
   Group: string | null;

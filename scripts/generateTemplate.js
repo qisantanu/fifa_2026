@@ -4,9 +4,9 @@ import * as fs from 'fs';
 const workbook = XLSX.utils.book_new();
 
 const matchesData = [
-  { MatchID: 1, Date: '2026-06-11', 'Team 1': 'USA', 'Team 2': 'TBD', 'Team 1 Score': null, 'Team 2 Score': null, Stage: 'Group', Winner: null, Group: 'A' },
-  { MatchID: 2, Date: '2026-06-11', 'Team 1': 'Mexico', 'Team 2': 'TBD', 'Team 1 Score': null, 'Team 2 Score': null, Stage: 'Group', Winner: null, Group: 'A' },
-  { MatchID: 3, Date: '2026-06-12', 'Team 1': 'Canada', 'Team 2': 'TBD', 'Team 1 Score': null, 'Team 2 Score': null, Stage: 'Group', Winner: null, Group: 'B' },
+  { MatchID: 1, Date: '2026-06-11', 'Team 1': 'USA', 'Team 2': 'TBD', 'Team 1 Score': null, 'Team 2 Score': null, 'Team 1 scorers': null, 'Team 2 scorers': null, Stage: 'Group', Winner: null, Group: 'A' },
+  { MatchID: 2, Date: '2026-06-11', 'Team 1': 'Mexico', 'Team 2': 'TBD', 'Team 1 Score': null, 'Team 2 Score': null, 'Team 1 scorers': null, 'Team 2 scorers': null, Stage: 'Group', Winner: null, Group: 'A' },
+  { MatchID: 3, Date: '2026-06-12', 'Team 1': 'Canada', 'Team 2': 'TBD', 'Team 1 Score': null, 'Team 2 Score': null, 'Team 1 scorers': null, 'Team 2 scorers': null, Stage: 'Group', Winner: null, Group: 'B' },
 ];
 
 const teamsData = [
