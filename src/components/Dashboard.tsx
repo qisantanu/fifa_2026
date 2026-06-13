@@ -38,6 +38,9 @@ const Dashboard: React.FC<DashboardProps> = ({ matches }) => {
                     <span className="text-xl font-bold">{match['Team 1'].substring(0, 3)}</span>
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider">{match['Team 1']}</span>
+                  <div className="mt-1 text-[8px] font-mono text-gray-500 uppercase text-center max-w-[80px] truncate">
+                    {match['Team 1 scorers'] || ''}
+                  </div>
                 </div>
                 
                 <div className="flex flex-col items-center">
@@ -54,6 +57,9 @@ const Dashboard: React.FC<DashboardProps> = ({ matches }) => {
                     <span className="text-xl font-bold">{match['Team 2'].substring(0, 3)}</span>
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider">{match['Team 2']}</span>
+                  <div className="mt-1 text-[8px] font-mono text-gray-500 uppercase text-center max-w-[80px] truncate">
+                    {match['Team 2 scorers'] || ''}
+                  </div>
                 </div>
               </div>
               

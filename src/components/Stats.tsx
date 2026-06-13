@@ -21,6 +21,22 @@ const Stats: React.FC<StatsProps> = ({ matches }) => {
     return acc;
   }, []);
 
+  // Parse scorers
+  const scorerCounts: { [name: string]: number } = {};
+  completedMatches.forEach(match => {
+    const t1Scorers = match['Team 1 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    const t2Scorers = match['Team 2 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    
+    [...t1Scorers, ...t2Scorers].forEach(scorer => {
+      scorerCounts[scorer] = (scorerCounts[scorer] || 0) + 1;
+    });
+  });
+
+  const topScorers = Object.entries(scorerCounts)
+    .map(([name, goals]) => ({ name, goals }))
+    .sort((a, b) => b.goals - a.goals)
+    .slice(0, 5);
+
   return (
     <div className="space-y-12">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -56,26 +72,56 @@ const Stats: React.FC<StatsProps> = ({ matches }) => {
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-8 flex flex-col justify-center items-center text-center space-y-6"
+          className="glass-card p-8 flex flex-col justify-between"
         >
-          <div className="w-24 h-24 border-4 border-cyber-magenta rounded-full flex items-center justify-center shadow-neon-magenta animate-pulse">
-            <span className="text-4xl font-black text-white">
-                {completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0)}
-            </span>
-          </div>
           <div>
-            <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">Total Quantum Goals</h3>
-            <p className="text-gray-500 text-xs font-mono uppercase mt-2">Aggregate tournament data pulse</p>
+            <h3 className="text-lg font-black italic text-cyber-magenta uppercase mb-8 flex items-center gap-4">
+              <span className="w-2 h-2 bg-cyber-magenta rounded-full"></span>
+              Golden Boot // Leaderboard
+            </h3>
+            <div className="space-y-4">
+              {topScorers.length > 0 ? (
+                topScorers.map((scorer, i) => (
+                  <div key={scorer.name} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-mono text-gray-500">0{i + 1}</span>
+                      <span className="text-white font-bold tracking-tight group-hover:text-cyber-blue transition-colors uppercase">
+                        {scorer.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1 w-24 bg-white/5 overflow-hidden rounded-full">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(scorer.goals / topScorers[0].goals) * 100}%` }}
+                          className="h-full bg-cyber-magenta"
+                        />
+                      </div>
+                      <span className="text-cyber-magenta font-black italic w-8 text-right">{scorer.goals}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-500 text-xs font-mono py-8 text-center uppercase tracking-widest">
+                  Awaiting Data Streams...
+                </div>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 w-full">
-             <div className="bg-white/5 p-4 rounded border border-white/5">
-                <div className="text-xl font-bold text-cyber-blue">{completedMatches.length}</div>
-                <div className="text-[10px] font-mono text-gray-500 uppercase">Matches Sync</div>
-             </div>
-             <div className="bg-white/5 p-4 rounded border border-white/5">
-                <div className="text-xl font-bold text-cyber-magenta">{(completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0) / (completedMatches.length || 1)).toFixed(2)}</div>
-                <div className="text-[10px] font-mono text-gray-500 uppercase">Goals/Match</div>
-             </div>
+
+          <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-mono text-gray-500 uppercase">Total Quantum Goals</span>
+              <span className="text-2xl font-black text-white italic">
+                {completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0)}
+              </span>
+            </div>
+            <div className="flex flex-col items-end text-right">
+              <span className="text-[10px] font-mono text-gray-500 uppercase">Goals/Match</span>
+              <span className="text-2xl font-black text-cyber-blue italic">
+                {(completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0) / (completedMatches.length || 1)).toFixed(2)}
+              </span>
+            </div>
           </div>
         </motion.div>
       </div>
