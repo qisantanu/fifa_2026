@@ -8,6 +8,139 @@ interface StatsProps {
   teams: Team[];
 }
 
+const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ matches, teams }) => {
+  const completedMatches = matches.filter(m => m['Team 1 Score'] !== null && m['Team 2 Score'] !== null);
+  
+  const teamStats = teams.map(team => {
+    const teamMatches = completedMatches.filter(m => m['Team 1'] === team.TeamName || m['Team 2'] === team.TeamName);
+    
+    const allScorers: string[] = [];
+    let teamTotalGoals = 0;
+    
+    teamMatches.forEach(m => {
+      const isTeam1 = m['Team 1'] === team.TeamName;
+      const scorersStr = isTeam1 ? m['Team 1 scorers'] : m['Team 2 scorers'];
+      const score = isTeam1 ? m['Team 1 Score'] : m['Team 2 Score'];
+      
+      teamTotalGoals += (score || 0);
+      if (scorersStr) {
+        allScorers.push(...scorersStr.split(',').map(s => s.trim()).filter(Boolean));
+      }
+    });
+
+    const uniqueScorers = new Set(allScorers).size;
+    
+    const scorerCounts: { [name: string]: number } = {};
+    allScorers.forEach(s => scorerCounts[s] = (scorerCounts[s] || 0) + 1);
+    
+    const topScorerGoals = Math.max(...Object.values(scorerCounts), 0);
+    const dependency = teamTotalGoals > 0 ? (topScorerGoals / teamTotalGoals) * 100 : 0;
+
+    return {
+      name: team.TeamName,
+      flagCode: team.FlagCode.toLowerCase(),
+      uniqueScorers,
+      dependency,
+      totalGoals: teamTotalGoals,
+      topScorerGoals
+    };
+  }).filter(t => t.totalGoals > 0);
+
+  const diversityStats = [...teamStats].sort((a, b) => b.uniqueScorers - a.uniqueScorers).slice(0, 6);
+  const offensiveStats = [...teamStats].sort((a, b) => b.totalGoals - a.totalGoals).slice(0, 6);
+  const dependencyStats = [...teamStats].sort((a, b) => b.dependency - a.dependency).slice(0, 4);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mt-12">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-8"
+      >
+        <h3 className="text-lg font-black italic text-cyber-blue uppercase mb-8 flex items-center gap-4">
+          <span className="w-2 h-2 bg-cyber-blue rounded-full animate-ping"></span>
+          Scorer Diversity // Unique Threats
+        </h3>
+        <div className="space-y-4">
+          {diversityStats.map((team) => (
+            <div key={team.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm" alt="" />
+                <span className="text-xs font-bold text-white uppercase">{team.name}</span>
+              </div>
+              <div className="flex items-center gap-4 flex-1 max-w-[120px] ml-4">
+                <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(team.uniqueScorers / 10) * 100}%` }}
+                    className="h-full bg-cyber-blue shadow-neon"
+                  />
+                </div>
+                <span className="text-cyber-blue font-mono text-[10px] w-4">{team.uniqueScorers}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-8"
+      >
+        <h3 className="text-lg font-black italic text-white uppercase mb-8 flex items-center gap-4">
+          <span className="w-2 h-2 bg-white rounded-full animate-ping"></span>
+          Offensive Power // Goal Distribution
+        </h3>
+        <div className="space-y-4">
+          {offensiveStats.map((team) => (
+            <div key={team.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm" alt="" />
+                <span className="text-xs font-bold text-white uppercase">{team.name}</span>
+              </div>
+              <div className="flex items-center gap-4 flex-1 max-w-[120px] ml-4">
+                <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(team.totalGoals / (offensiveStats[0]?.totalGoals || 1)) * 100}%` }}
+                    className="h-full bg-white shadow-[0_0_8px_#fff]"
+                  />
+                </div>
+                <span className="text-white font-mono text-[10px] w-4">{team.totalGoals}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass-card p-8"
+      >
+        <h3 className="text-lg font-black italic text-cyber-magenta uppercase mb-8 flex items-center gap-4">
+          <span className="w-2 h-2 bg-cyber-magenta rounded-full animate-ping"></span>
+          Dependency Index // Star Reliance
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          {dependencyStats.map((team) => (
+            <div key={team.name} className="p-4 bg-white/5 rounded border border-white/5 relative overflow-hidden group">
+              <div className="flex items-center gap-2 mb-2">
+                <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-3 h-2 object-cover rounded-sm" alt="" />
+                <span className="text-[10px] font-black text-white uppercase truncate">{team.name}</span>
+              </div>
+              <div className="text-2xl font-black text-cyber-magenta italic">{team.dependency.toFixed(0)}%</div>
+              <div className="text-[8px] font-mono text-gray-500 uppercase mt-1">Dependence Level</div>
+              <div className={`absolute bottom-0 left-0 h-0.5 bg-cyber-magenta transition-all duration-1000`} style={{ width: `${team.dependency}%` }}></div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
   const completedMatches = matches.filter(m => m['Team 1 Score'] !== null && m['Team 2 Score'] !== null);
   
@@ -61,7 +194,7 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
     .slice(0, 5);
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
@@ -130,7 +263,7 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
                       <div className="h-1 w-24 bg-white/5 overflow-hidden rounded-full">
                         <motion.div 
                           initial={{ width: 0 }}
-                          animate={{ width: `${(scorer.goals / topScorers[0].goals) * 100}%` }}
+                          animate={{ width: `${(scorer.goals / (topScorers[0]?.goals || 1)) * 100}%` }}
                           className="h-full bg-cyber-magenta"
                         />
                       </div>
@@ -163,6 +296,8 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
         </motion.div>
       </div>
       
+      <AnalyticalInsights matches={matches} teams={teams} />
+
       <div className="glass-card p-6 bg-gradient-to-r from-cyber-blue/10 to-transparent">
         <h4 className="text-xs font-mono text-cyber-blue uppercase tracking-widest mb-4">Network Status</h4>
         <div className="flex flex-wrap gap-8">
