@@ -10,7 +10,7 @@ export const useTournamentData = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const data = await parseWorldCupData('/data/world_cup_2026.xlsx');
+      const data = await parseWorldCupData(`${import.meta.env.BASE_URL}data/world_cup_2026.xlsx`);
       setMatches(data.matches);
       setTeams(data.teams);
       setLoading(false);
