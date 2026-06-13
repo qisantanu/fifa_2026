@@ -1,13 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import type { Match } from '../utils/excelParser';
+import type { Match, Team } from '../utils/excelParser';
 
 interface StatsProps {
   matches: Match[];
+  teams: Team[];
 }
 
-const Stats: React.FC<StatsProps> = ({ matches }) => {
+const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
   const completedMatches = matches.filter(m => m['Team 1 Score'] !== null && m['Team 2 Score'] !== null);
   
   const goalsByStage = completedMatches.reduce((acc: any, match) => {
@@ -21,19 +22,41 @@ const Stats: React.FC<StatsProps> = ({ matches }) => {
     return acc;
   }, []);
 
-  // Parse scorers
-  const scorerCounts: { [name: string]: number } = {};
+  // Parse scorers and associate with teams
+  const scorerData: { [name: string]: { goals: number, team: string, flagCode: string } } = {};
+  
+  const getTeamInfo = (teamName: string) => {
+    const team = teams.find(t => t.TeamName === teamName);
+    return {
+      name: teamName,
+      flagCode: team?.FlagCode?.toLowerCase() || ''
+    };
+  };
+
   completedMatches.forEach(match => {
+    const t1Info = getTeamInfo(match['Team 1']);
+    const t2Info = getTeamInfo(match['Team 2']);
+    
     const t1Scorers = match['Team 1 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
     const t2Scorers = match['Team 2 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
     
-    [...t1Scorers, ...t2Scorers].forEach(scorer => {
-      scorerCounts[scorer] = (scorerCounts[scorer] || 0) + 1;
+    t1Scorers.forEach(scorer => {
+      if (!scorerData[scorer]) {
+        scorerData[scorer] = { goals: 0, team: t1Info.name, flagCode: t1Info.flagCode };
+      }
+      scorerData[scorer].goals++;
+    });
+
+    t2Scorers.forEach(scorer => {
+      if (!scorerData[scorer]) {
+        scorerData[scorer] = { goals: 0, team: t2Info.name, flagCode: t2Info.flagCode };
+      }
+      scorerData[scorer].goals++;
     });
   });
 
-  const topScorers = Object.entries(scorerCounts)
-    .map(([name, goals]) => ({ name, goals }))
+  const topScorers = Object.entries(scorerData)
+    .map(([name, data]) => ({ name, ...data }))
     .sort((a, b) => b.goals - a.goals)
     .slice(0, 5);
 
@@ -85,9 +108,23 @@ const Stats: React.FC<StatsProps> = ({ matches }) => {
                   <div key={scorer.name} className="flex items-center justify-between group">
                     <div className="flex items-center gap-4">
                       <span className="text-xs font-mono text-gray-500">0{i + 1}</span>
-                      <span className="text-white font-bold tracking-tight group-hover:text-cyber-blue transition-colors uppercase">
-                        {scorer.name}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-white font-bold tracking-tight group-hover:text-cyber-blue transition-colors uppercase">
+                          {scorer.name}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="w-3 h-2 overflow-hidden rounded-sm border border-white/10 flex-shrink-0">
+                            {scorer.flagCode && (
+                              <img 
+                                src={`https://flagcdn.com/w40/${scorer.flagCode}.png`} 
+                                alt={scorer.team}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <span className="text-[8px] font-mono text-gray-500 uppercase">{scorer.team}</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="h-1 w-24 bg-white/5 overflow-hidden rounded-full">

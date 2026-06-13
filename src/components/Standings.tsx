@@ -9,6 +9,7 @@ interface StandingsProps {
 
 interface TeamStats {
   name: string;
+  flagCode: string;
   played: number;
   won: number;
   drawn: number;
@@ -28,7 +29,18 @@ const Standings: React.FC<StandingsProps> = ({ matches, teams }) => {
 
     const stats: Record<string, TeamStats> = {};
     groupTeams.forEach(t => {
-      stats[t.TeamName] = { name: t.TeamName, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+      stats[t.TeamName] = { 
+        name: t.TeamName, 
+        flagCode: t.FlagCode,
+        played: 0, 
+        won: 0, 
+        drawn: 0, 
+        lost: 0, 
+        gf: 0, 
+        ga: 0, 
+        gd: 0, 
+        pts: 0 
+      };
     });
 
     groupMatches.forEach(m => {
@@ -101,6 +113,14 @@ const Standings: React.FC<StandingsProps> = ({ matches, teams }) => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <span className="text-gray-600 font-mono text-xs">{tIndex + 1}</span>
+                        <div className="w-6 h-4 overflow-hidden rounded-sm border border-white/10 shadow-sm flex-shrink-0">
+                          <img 
+                            src={`https://flagcdn.com/w40/${team.flagCode.toLowerCase()}.png`} 
+                            alt={team.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                          />
+                        </div>
                         <span className="font-bold uppercase tracking-tight group-hover:text-cyber-blue transition-colors">
                           {team.name}
                         </span>

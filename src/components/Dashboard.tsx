@@ -1,14 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Trophy } from 'lucide-react';
-import type { Match } from '../utils/excelParser';
+import type { Match, Team } from '../utils/excelParser';
 
 interface DashboardProps {
   matches: Match[];
+  teams: Team[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ matches }) => {
+const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
   const recentMatches = matches.slice(0, 6);
+
+  const getFlagCode = (teamName: string) => {
+    return teams.find(t => t.TeamName === teamName)?.FlagCode?.toLowerCase() || '';
+  };
 
   return (
     <div className="space-y-8">
@@ -34,12 +39,22 @@ const Dashboard: React.FC<DashboardProps> = ({ matches }) => {
               
               <div className="flex items-center justify-between gap-4 py-4">
                 <div className="flex flex-col items-center flex-1">
-                  <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors">
-                    <span className="text-xl font-bold">{match['Team 1'].substring(0, 3)}</span>
+                  <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors overflow-hidden">
+                    {getFlagCode(match['Team 1']) ? (
+                      <img 
+                        src={`https://flagcdn.com/w80/${getFlagCode(match['Team 1'])}.png`}
+                        alt={match['Team 1']}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl font-bold">{match['Team 1'].substring(0, 3)}</span>
+                    )}
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider">{match['Team 1']}</span>
-                  <div className="mt-1 text-[8px] font-mono text-gray-500 uppercase text-center max-w-[80px] truncate">
-                    {match['Team 1 scorers'] || ''}
+                  <span className="text-xs font-bold uppercase tracking-wider text-center">{match['Team 1']}</span>
+                  <div className="mt-2 text-[7px] font-mono text-gray-500 uppercase text-center leading-tight space-y-0.5">
+                    {match['Team 1 scorers']?.split(',').map((s, i) => (
+                      <div key={i} className="whitespace-nowrap">{s.trim()}</div>
+                    )) || ''}
                   </div>
                 </div>
                 
@@ -53,12 +68,22 @@ const Dashboard: React.FC<DashboardProps> = ({ matches }) => {
                 </div>
 
                 <div className="flex flex-col items-center flex-1">
-                  <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors">
-                    <span className="text-xl font-bold">{match['Team 2'].substring(0, 3)}</span>
+                  <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors overflow-hidden">
+                    {getFlagCode(match['Team 2']) ? (
+                      <img 
+                        src={`https://flagcdn.com/w80/${getFlagCode(match['Team 2'])}.png`}
+                        alt={match['Team 2']}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl font-bold">{match['Team 2'].substring(0, 3)}</span>
+                    )}
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider">{match['Team 2']}</span>
-                  <div className="mt-1 text-[8px] font-mono text-gray-500 uppercase text-center max-w-[80px] truncate">
-                    {match['Team 2 scorers'] || ''}
+                  <span className="text-xs font-bold uppercase tracking-wider text-center">{match['Team 2']}</span>
+                  <div className="mt-2 text-[7px] font-mono text-gray-500 uppercase text-center leading-tight space-y-0.5">
+                    {match['Team 2 scorers']?.split(',').map((s, i) => (
+                      <div key={i} className="whitespace-nowrap">{s.trim()}</div>
+                    )) || ''}
                   </div>
                 </div>
               </div>

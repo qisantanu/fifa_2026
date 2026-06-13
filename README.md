@@ -1,73 +1,58 @@
-# React + TypeScript + Vite
+# 🏆 FIFA 2026 Quantum Stats
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A futuristic, Excel-driven web application to track and visualize 2026 FIFA World Cup statistics, knockout progress, and player performances.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Cyber/Futuristic UI:** Neon accents, glassmorphism, and interactive animations using Framer Motion.
+- **Excel-Driven Data:** Real-time synchronization with a local Excel file (`public/data/world_cup_2026.xlsx`).
+- **Dynamic Leaderboards:** Automated Golden Boot calculation with player-team association and flags.
+- **Group Standings:** Live calculation of points, goal difference, and rankings.
+- **Match Feed:** Interactive dashboard showing recent scores and goal scorers.
 
-## React Compiler
+## 🛠️ Local Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Follow these steps to get the project running on your local machine:
 
-## Expanding the ESLint configuration
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- [npm](https://www.npmjs.com/) (installed with Node.js)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Installation
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd fifa_2026
+    ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3.  **Start the development server:**
+    ```bash
+    npm run dev
+    ```
+    The application will be available at `http://localhost:5173` (or the port displayed in your terminal).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Data Management
+- All tournament data is stored in `public/data/world_cup_2026.xlsx`.
+- Open the file in Excel, update scores or scorers, and save. 
+- Refresh the browser to see the live updates.
+
+## 📦 Building for Production
+
+To create an optimized production build:
+```bash
+npm run build
 ```
+The output will be in the `dist/` directory.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📜 License
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+**Proprietary Software - All Rights Reserved.**
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+This software is for private use only. Unauthorized copying, distribution, modification, or use of this code, via any medium, is strictly prohibited. 
+
+Copyright (c) 2026 Santanub.

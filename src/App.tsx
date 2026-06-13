@@ -23,15 +23,15 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard matches={matches} />;
+        return <Dashboard matches={matches} teams={teams} />;
       case 'standings':
         return <Standings matches={matches} teams={teams} />;
       case 'bracket':
         return <Bracket matches={matches} />;
       case 'stats':
-        return <Stats matches={matches} />;
+        return <Stats matches={matches} teams={teams} />;
       default:
-        return <Dashboard matches={matches} />;
+        return <Dashboard matches={matches} teams={teams} />;
     }
   };
 
