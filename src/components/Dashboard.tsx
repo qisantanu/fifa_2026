@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Trophy } from 'lucide-react';
-import type { Match, Team } from '../utils/excelParser';
+import { Calendar, MapPin, Trophy, Clock } from 'lucide-react';
+import { type Match, type Team, excelDateToJS } from '../utils/excelParser';
 
 interface DashboardProps {
   matches: Match[];
@@ -9,14 +9,37 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
-  const recentMatches = matches.slice(0, 6);
+  const now = new Date();
+  // Set to beginning of today for fair comparison
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Sort matches by ID descending and find completed ones (Winner is declared or is a Draw)
+  const completedMatches = [...matches]
+    .filter(m => m.Winner && m.Winner !== 'TBD' && m.Winner !== 'null')
+    .sort((a, b) => b.MatchID - a.MatchID);
+
+  // Find 3 upcoming matches: Winner is TBD AND Date >= Today
+  const upcomingMatches = [...matches]
+    .filter(m => (m.Winner === 'TBD' || !m.Winner) && excelDateToJS(m.Date) >= today)
+    .sort((a, b) => excelDateToJS(a.Date).getTime() - excelDateToJS(b.Date).getTime())
+    .slice(0, 3);
+
+  // If we have completed matches, show latest 6. Otherwise show first 6 upcoming.
+  const displayMatches = completedMatches.length > 0 
+    ? completedMatches.slice(0, 6) 
+    : matches.slice(0, 6);
 
   const getFlagCode = (teamName: string) => {
     return teams.find(t => t.TeamName === teamName)?.FlagCode?.toLowerCase() || '';
   };
 
+  const formatDate = (date: string | number) => {
+    const d = excelDateToJS(date);
+    return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-black italic tracking-widest text-cyber-blue uppercase">Live Feed // Recent Matches</h2>
@@ -24,7 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recentMatches.map((match, index) => (
+          {displayMatches.map((match, index) => (
             <motion.div
               key={match.MatchID}
               initial={{ opacity: 0, y: 20 }}
@@ -90,12 +113,54 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
               
               <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-[10px] font-mono text-gray-400">
                 <MapPin size={10} className="text-cyber-blue" />
-                <span>{match.Date} // VENUE TBD</span>
+                <span>{formatDate(match.Date)} // VENUE TBD</span>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
+
+      {upcomingMatches.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-black italic tracking-widest text-cyber-magenta uppercase">Upcoming Protocols // 72H Window</h2>
+            <div className="h-px flex-1 bg-cyber-magenta/20 ml-6"></div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {upcomingMatches.map((match, index) => (
+              <motion.div
+                key={match.MatchID}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+                className="glass-card p-6 border-b-4 border-b-cyber-magenta bg-cyber-magenta/5 relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <Clock size={40} className="text-cyber-magenta" />
+                </div>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex items-center justify-center gap-6 w-full">
+                    <div className="flex flex-col items-center">
+                        <img src={`https://flagcdn.com/w40/${getFlagCode(match['Team 1'])}.png`} className="w-8 h-5 object-cover rounded-sm mb-2" alt="" />
+                        <span className="text-[10px] font-bold text-white uppercase">{match['Team 1']}</span>
+                    </div>
+                    <span className="text-cyber-magenta font-black italic">VS</span>
+                    <div className="flex flex-col items-center">
+                        <img src={`https://flagcdn.com/w40/${getFlagCode(match['Team 2'])}.png`} className="w-8 h-5 object-cover rounded-sm mb-2" alt="" />
+                        <span className="text-[10px] font-bold text-white uppercase">{match['Team 2']}</span>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">{formatDate(match.Date)}</div>
+                    <div className="text-[8px] font-mono text-cyber-magenta uppercase mt-1">Status: Pre-Match Sync</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="glass-card p-8 relative overflow-hidden group">

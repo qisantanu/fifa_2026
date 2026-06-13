@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 
 export interface Match {
   MatchID: number;
-  Date: string;
+  Date: string | number;
   'Team 1': string;
   'Team 2': string;
   'Team 1 Score': number | null;
@@ -13,6 +13,14 @@ export interface Match {
   Winner: string | null;
   Group: string | null;
 }
+
+export const excelDateToJS = (serial: number | string): Date => {
+  if (typeof serial === 'string') return new Date(serial);
+  const utc_days = Math.floor(serial - 25569);
+  const utc_value = utc_days * 86400;
+  const date_info = new Date(utc_value * 1000);
+  return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate());
+};
 
 export interface Team {
   TeamName: string;
