@@ -297,6 +297,10 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
     .sort((a, b) => b.goals - a.goals)
     .slice(0, 5);
 
+  const totalGoals = completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0);
+  const totalYellow = completedMatches.reduce((acc, m) => acc + (m['Team 1 Yellow'] || 0) + (m['Team 2 Yellow'] || 0), 0);
+  const totalRed = completedMatches.reduce((acc, m) => acc + (m['Team 1 Red'] || 0) + (m['Team 2 Red'] || 0), 0);
+
   return (
     <div className="space-y-8 md:space-y-12 pb-12">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -383,17 +387,28 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
             </div>
           </div>
 
-          <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/5 flex items-center justify-between">
+          <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/5 grid grid-cols-3 gap-2 items-end">
             <div className="flex flex-col">
-              <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase">Total Quantum Goals</span>
-              <span className="text-xl md:text-2xl font-black text-white italic">
-                {completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0)}
-              </span>
+              <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase">Quantum Goals</span>
+              <span className="text-xl md:text-2xl font-black text-white italic">{totalGoals}</span>
+            </div>
+            <div className="flex flex-col items-center border-x border-white/5 px-2">
+                <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase text-center w-full mb-1">Total Cards</span>
+                <div className="flex gap-3 md:gap-4">
+                    <div className="flex items-center gap-1">
+                        <div className="w-1 h-2 bg-yellow-500 rounded-sm"></div>
+                        <span className="text-xs md:text-sm font-black text-yellow-500 italic">{totalYellow}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="w-1 h-2 bg-red-500 rounded-sm"></div>
+                        <span className="text-xs md:text-sm font-black text-red-500 italic">{totalRed}</span>
+                    </div>
+                </div>
             </div>
             <div className="flex flex-col items-end text-right">
               <span className="text-[8px] md:text-[10px] font-mono text-gray-500 uppercase">Goals/Match</span>
               <span className="text-xl md:text-2xl font-black text-cyber-blue italic">
-                {(completedMatches.reduce((acc, m) => acc + (m['Team 1 Score'] || 0) + (m['Team 2 Score'] || 0), 0) / (completedMatches.length || 1)).toFixed(2)}
+                {(totalGoals / (completedMatches.length || 1)).toFixed(2)}
               </span>
             </div>
           </div>

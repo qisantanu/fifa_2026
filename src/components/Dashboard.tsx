@@ -111,9 +111,32 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
                 </div>
               </div>
               
-              <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2 text-[8px] md:text-[10px] font-mono text-gray-400">
-                <MapPin className="text-cyber-blue w-2 h-2 md:w-2.5 md:h-2.5" />
-                <span>{formatDate(match.Date)} // VENUE TBD</span>
+              <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-[8px] md:text-[10px] font-mono text-gray-400">
+                <span>{formatDate(match.Date)}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 border-r border-white/5 pr-3">
+                    <span className="text-[7px] text-gray-600 uppercase">{match['Team 1'].substring(0,3)}</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-2 bg-yellow-500/80 rounded-sm shadow-[0_0_4px_rgba(234,179,8,0.3)]"></div>
+                      <span>{match['Team 1 Yellow'] || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-2 bg-red-500/80 rounded-sm shadow-[0_0_4px_rgba(239,68,68,0.3)]"></div>
+                      <span>{match['Team 1 Red'] || 0}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[7px] text-gray-600 uppercase">{match['Team 2'].substring(0,3)}</span>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-2 bg-yellow-500/80 rounded-sm shadow-[0_0_4px_rgba(234,179,8,0.3)]"></div>
+                      <span>{match['Team 2 Yellow'] || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-2 bg-red-500/80 rounded-sm shadow-[0_0_4px_rgba(239,68,68,0.3)]"></div>
+                      <span>{match['Team 2 Red'] || 0}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           ))}

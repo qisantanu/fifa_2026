@@ -44,25 +44,32 @@ const Standings: React.FC<StandingsProps> = ({ matches, teams }) => {
     });
 
     groupMatches.forEach(m => {
-      if (m['Team 1 Score'] === null || m['Team 2 Score'] === null) return;
+      // Robust check: ensure match is completed and scores are valid numbers
+      const isCompleted = m.Winner && m.Winner !== 'TBD' && m.Winner !== 'null';
+      const hasValidScores = typeof m['Team 1 Score'] === 'number' && typeof m['Team 2 Score'] === 'number';
+      
+      if (!isCompleted || !hasValidScores) return;
 
       const home = stats[m['Team 1']];
       const away = stats[m['Team 2']];
 
       if (!home || !away) return;
 
+      const score1 = m['Team 1 Score'] as number;
+      const score2 = m['Team 2 Score'] as number;
+
       home.played++;
       away.played++;
-      home.gf += m['Team 1 Score'];
-      home.ga += m['Team 2 Score'];
-      away.gf += m['Team 2 Score'];
-      away.ga += m['Team 1 Score'];
+      home.gf += score1;
+      home.ga += score2;
+      away.gf += score2;
+      away.ga += score1;
 
-      if (m['Team 1 Score'] > m['Team 2 Score']) {
+      if (score1 > score2) {
         home.won++;
         home.pts += 3;
         away.lost++;
-      } else if (m['Team 2 Score'] > m['Team 1 Score']) {
+      } else if (score2 > score1) {
         away.won++;
         away.pts += 3;
         home.lost++;
