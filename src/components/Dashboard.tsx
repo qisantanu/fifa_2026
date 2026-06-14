@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Calendar, Trophy, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, Trophy, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { type Match, type Team, excelDateToJS } from '../utils/excelParser';
 
 interface DashboardProps {
@@ -9,6 +9,9 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const matchesPerPage = 6;
+
   const now = new Date();
   // Set to beginning of today for fair comparison
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -18,15 +21,17 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
     .filter(m => m.Winner && m.Winner !== 'TBD' && m.Winner !== 'null')
     .sort((a, b) => b.MatchID - a.MatchID);
 
+  const totalPages = Math.ceil(completedMatches.length / matchesPerPage);
+
   // Find 3 upcoming matches: Winner is TBD AND Date >= Today
   const upcomingMatches = [...matches]
     .filter(m => (m.Winner === 'TBD' || !m.Winner) && excelDateToJS(m.Date) >= today)
     .sort((a, b) => excelDateToJS(a.Date).getTime() - excelDateToJS(b.Date).getTime())
     .slice(0, 3);
 
-  // If we have completed matches, show latest 6. Otherwise show first 6 upcoming.
+  // If we have completed matches, show paged slice. Otherwise show first 6 upcoming.
   const displayMatches = completedMatches.length > 0 
-    ? completedMatches.slice(0, 6) 
+    ? completedMatches.slice(currentPage * matchesPerPage, (currentPage + 1) * matchesPerPage) 
     : matches.slice(0, 6);
 
   const getFlagCode = (teamName: string) => {
@@ -41,105 +46,131 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
   return (
     <div className="space-y-8 md:space-y-12">
       <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg md:text-2xl font-black italic tracking-widest text-cyber-blue uppercase">Live Feed // Recent Matches</h2>
-          <div className="h-px flex-1 bg-cyber-blue/20 ml-4 md:ml-6"></div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <h2 className="text-lg md:text-2xl font-black italic tracking-widest text-cyber-blue uppercase shrink-0">Live Feed // Recent Matches</h2>
+            <div className="h-px flex-1 bg-cyber-blue/20 hidden md:block"></div>
+          </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2 self-end">
+              <span className="text-[10px] font-mono text-gray-500 mr-2 uppercase">Page {currentPage + 1} of {totalPages}</span>
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
+                className={`p-1.5 rounded border ${currentPage === 0 ? 'border-white/5 text-gray-700' : 'border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/10'} transition-all cursor-pointer disabled:cursor-default`}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={currentPage === totalPages - 1}
+                className={`p-1.5 rounded border ${currentPage === totalPages - 1 ? 'border-white/5 text-gray-700' : 'border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/10'} transition-all cursor-pointer disabled:cursor-default`}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {displayMatches.map((match, index) => (
-            <motion.div
-              key={match.MatchID}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card p-4 md:p-6 border-l-4 border-l-cyber-blue hover:shadow-neon transition-all duration-500 group"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <span className="text-[8px] md:text-[10px] font-mono text-cyber-blue uppercase tracking-[0.1em] md:tracking-[0.2em]">Match ID: {match.MatchID} // {match.Stage}</span>
-                <Calendar className="text-gray-500 w-3 h-3 md:w-3.5 md:h-3.5" />
-              </div>
-              
-              <div className="flex items-center justify-between gap-2 md:gap-4 py-2 md:py-4">
-                <div className="flex flex-col items-center flex-1 min-w-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors overflow-hidden">
-                    {getFlagCode(match['Team 1']) ? (
-                      <img 
-                        src={`https://flagcdn.com/w80/${getFlagCode(match['Team 1'])}.png`}
-                        alt={match['Team 1']}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-bold">{match['Team 1'].substring(0, 3)}</span>
-                    )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 min-h-[400px]">
+          <AnimatePresence mode="popLayout">
+            {displayMatches.map((match, index) => (
+              <motion.div
+                layout
+                key={match.MatchID}
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                transition={{ delay: index * 0.05, duration: 0.2 }}
+                className="glass-card p-4 md:p-6 border-l-4 border-l-cyber-blue hover:shadow-neon transition-all duration-500 group"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <span className="text-[8px] md:text-[10px] font-mono text-cyber-blue uppercase tracking-[0.1em] md:tracking-[0.2em]">Match ID: {match.MatchID} // {match.Stage}</span>
+                  <Calendar className="text-gray-500 w-3 h-3 md:w-3.5 md:h-3.5" />
+                </div>
+                
+                <div className="flex items-center justify-between gap-2 md:gap-4 py-2 md:py-4">
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors overflow-hidden">
+                      {getFlagCode(match['Team 1']) ? (
+                        <img 
+                          src={`https://flagcdn.com/w80/${getFlagCode(match['Team 1'])}.png`}
+                          alt={match['Team 1']}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-bold">{match['Team 1'].substring(0, 3)}</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-center truncate w-full">{match['Team 1']}</span>
+                    <div className="mt-2 text-[6px] md:text-[7px] font-mono text-gray-500 uppercase text-center leading-tight space-y-0.5 max-h-[40px] overflow-y-auto no-scrollbar">
+                      {match['Team 1 scorers']?.split(',').map((s, i) => (
+                        <div key={i} className="whitespace-nowrap">{s.trim()}</div>
+                      )) || ''}
+                    </div>
                   </div>
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-center truncate w-full">{match['Team 1']}</span>
-                  <div className="mt-2 text-[6px] md:text-[7px] font-mono text-gray-500 uppercase text-center leading-tight space-y-0.5 max-h-[40px] overflow-y-auto no-scrollbar">
-                    {match['Team 1 scorers']?.split(',').map((s, i) => (
-                      <div key={i} className="whitespace-nowrap">{s.trim()}</div>
-                    )) || ''}
+                  
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="text-xl md:text-3xl font-black italic text-white flex gap-1 md:gap-2">
+                      <span>{match['Team 1 Score'] ?? '-'}</span>
+                      <span className="text-cyber-blue">:</span>
+                      <span>{match['Team 2 Score'] ?? '-'}</span>
+                    </div>
+                    <span className="text-[8px] font-mono text-gray-500 mt-1 uppercase">Final Score</span>
+                  </div>
+
+                  <div className="flex flex-col items-center flex-1 min-w-0">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors overflow-hidden">
+                      {getFlagCode(match['Team 2']) ? (
+                        <img 
+                          src={`https://flagcdn.com/w80/${getFlagCode(match['Team 2'])}.png`}
+                          alt={match['Team 2']}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-bold">{match['Team 2'].substring(0, 3)}</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-center truncate w-full">{match['Team 2']}</span>
+                    <div className="mt-2 text-[6px] md:text-[7px] font-mono text-gray-500 uppercase text-center leading-tight space-y-0.5 max-h-[40px] overflow-y-auto no-scrollbar">
+                      {match['Team 2 scorers']?.split(',').map((s, i) => (
+                        <div key={i} className="whitespace-nowrap">{s.trim()}</div>
+                      )) || ''}
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex flex-col items-center shrink-0">
-                  <div className="text-xl md:text-3xl font-black italic text-white flex gap-1 md:gap-2">
-                    <span>{match['Team 1 Score'] ?? '-'}</span>
-                    <span className="text-cyber-blue">:</span>
-                    <span>{match['Team 2 Score'] ?? '-'}</span>
-                  </div>
-                  <span className="text-[8px] font-mono text-gray-500 mt-1 uppercase">Final Score</span>
-                </div>
-
-                <div className="flex flex-col items-center flex-1 min-w-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-800 rounded-lg flex items-center justify-center mb-2 border border-white/5 group-hover:border-cyber-blue/50 transition-colors overflow-hidden">
-                    {getFlagCode(match['Team 2']) ? (
-                      <img 
-                        src={`https://flagcdn.com/w80/${getFlagCode(match['Team 2'])}.png`}
-                        alt={match['Team 2']}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-bold">{match['Team 2'].substring(0, 3)}</span>
-                    )}
-                  </div>
-                  <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-center truncate w-full">{match['Team 2']}</span>
-                  <div className="mt-2 text-[6px] md:text-[7px] font-mono text-gray-500 uppercase text-center leading-tight space-y-0.5 max-h-[40px] overflow-y-auto no-scrollbar">
-                    {match['Team 2 scorers']?.split(',').map((s, i) => (
-                      <div key={i} className="whitespace-nowrap">{s.trim()}</div>
-                    )) || ''}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-[8px] md:text-[10px] font-mono text-gray-400">
-                <span>{formatDate(match.Date)}</span>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 border-r border-white/5 pr-3">
-                    <span className="text-[7px] text-gray-600 uppercase">{match['Team 1'].substring(0,3)}</span>
-                    <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-2 bg-yellow-500/80 rounded-sm shadow-[0_0_4px_rgba(234,179,8,0.3)]"></div>
-                      <span>{match['Team 1 Yellow'] || 0}</span>
+                <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-[8px] md:text-[10px] font-mono text-gray-400">
+                  <span>{formatDate(match.Date)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 border-r border-white/5 pr-3">
+                      <span className="text-[7px] text-gray-600 uppercase">{match['Team 1'].substring(0,3)}</span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-2 bg-yellow-500/80 rounded-sm shadow-[0_0_4px_rgba(234,179,8,0.3)]"></div>
+                        <span>{match['Team 1 Yellow'] || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-2 bg-red-500/80 rounded-sm shadow-[0_0_4px_rgba(239,68,68,0.3)]"></div>
+                        <span>{match['Team 1 Red'] || 0}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-2 bg-red-500/80 rounded-sm shadow-[0_0_4px_rgba(239,68,68,0.3)]"></div>
-                      <span>{match['Team 1 Red'] || 0}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[7px] text-gray-600 uppercase">{match['Team 2'].substring(0,3)}</span>
-                    <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-2 bg-yellow-500/80 rounded-sm shadow-[0_0_4px_rgba(234,179,8,0.3)]"></div>
-                      <span>{match['Team 2 Yellow'] || 0}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-2 bg-red-500/80 rounded-sm shadow-[0_0_4px_rgba(239,68,68,0.3)]"></div>
-                      <span>{match['Team 2 Red'] || 0}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[7px] text-gray-600 uppercase">{match['Team 2'].substring(0,3)}</span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-2 bg-yellow-500/80 rounded-sm shadow-[0_0_4px_rgba(234,179,8,0.3)]"></div>
+                        <span>{match['Team 2 Yellow'] || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-2 bg-red-500/80 rounded-sm shadow-[0_0_4px_rgba(239,68,68,0.3)]"></div>
+                        <span>{match['Team 2 Red'] || 0}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </section>
 
