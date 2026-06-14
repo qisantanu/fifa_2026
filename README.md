@@ -15,7 +15,7 @@ A futuristic, Excel-driven web application to track and visualize 2026 FIFA Worl
 Follow these steps to get the project running on your local machine:
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- [Node.js](https://nodejs.org/) (v24.13.0 or higher recommended, see `.nvmrc`)
 - [npm](https://www.npmjs.com/) (installed with Node.js)
 
 ### Installation

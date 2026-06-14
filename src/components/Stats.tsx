@@ -313,23 +313,25 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
             <span className="w-2 h-2 bg-cyber-blue rounded-full animate-ping"></span>
             Goal Intensity // By Stage
           </h3>
-          <div className="flex-1 w-full min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={goalsByStage}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                <XAxis dataKey="stage" stroke="#94a3b8" fontSize={10} tick={{ fill: '#94a3b8' }} axisLine={{ stroke: '#ffffff20' }} />
-                <YAxis stroke="#94a3b8" fontSize={10} tick={{ fill: '#94a3b8' }} axisLine={{ stroke: '#ffffff20' }} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #00f2ff', borderRadius: '8px', fontSize: '10px' }}
-                  itemStyle={{ color: '#00f2ff', fontWeight: 'bold' }}
-                />
-                <Bar dataKey="goals">
-                  {goalsByStage.map((_: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00f2ff' : '#ff00c8'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex-1 w-full relative min-h-[250px]">
+            <div className="absolute inset-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={goalsByStage}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                  <XAxis dataKey="stage" stroke="#94a3b8" fontSize={10} tick={{ fill: '#94a3b8' }} axisLine={{ stroke: '#ffffff20' }} />
+                  <YAxis stroke="#94a3b8" fontSize={10} tick={{ fill: '#94a3b8' }} axisLine={{ stroke: '#ffffff20' }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #00f2ff', borderRadius: '8px', fontSize: '10px' }}
+                    itemStyle={{ color: '#00f2ff', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="goals">
+                    {goalsByStage.map((_: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00f2ff' : '#ff00c8'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </motion.div>
 
