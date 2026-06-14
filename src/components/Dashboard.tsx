@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Trophy, Clock } from 'lucide-react';
+import { Calendar, Trophy, Clock } from 'lucide-react';
 import { type Match, type Team, excelDateToJS } from '../utils/excelParser';
 
 interface DashboardProps {
