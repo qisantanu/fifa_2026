@@ -274,6 +274,13 @@ const Stats: React.FC<StatsProps> = ({ matches, teams, onPlayerClick }) => {
   // Parse scorers and associate with teams
   const scorerData: { [name: string]: { goals: number, team: string, flagCode: string, displayName: string } } = {};
   
+  const normalizeName = (name: string) => name.replace(/\s+/g, ' ').trim().toUpperCase();
+  const isOwnGoal = (scorer: string) => /(?:\bOG\b|\(OG\))/i.test(scorer);
+  const parseScorers = (scorers?: string) =>
+    (scorers?.split(',') || [])
+      .map(s => s.trim())
+      .filter(s => s && !isOwnGoal(s));
+  
   const getTeamInfo = (teamName: string) => {
     const team = teams.find(t => t.TeamName === teamName);
     return {
@@ -286,11 +293,11 @@ const Stats: React.FC<StatsProps> = ({ matches, teams, onPlayerClick }) => {
     const t1Info = getTeamInfo(match['Team 1']);
     const t2Info = getTeamInfo(match['Team 2']);
     
-    const t1Scorers = (match['Team 1 scorers']?.split(',') || []).map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
-    const t2Scorers = (match['Team 2 scorers']?.split(',') || []).map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
+    const t1Scorers = parseScorers(match['Team 1 scorers']);
+    const t2Scorers = parseScorers(match['Team 2 scorers']);
     
     t1Scorers.forEach(scorer => {
-      const normalizedName = scorer.replace(/\s+/g, ' ').trim().toUpperCase();
+      const normalizedName = normalizeName(scorer);
       if (!scorerData[normalizedName]) {
         scorerData[normalizedName] = { goals: 0, team: t1Info.name, flagCode: t1Info.flagCode, displayName: scorer };
       }
@@ -298,7 +305,7 @@ const Stats: React.FC<StatsProps> = ({ matches, teams, onPlayerClick }) => {
     });
 
     t2Scorers.forEach(scorer => {
-      const normalizedName = scorer.replace(/\s+/g, ' ').trim().toUpperCase();
+      const normalizedName = normalizeName(scorer);
       if (!scorerData[normalizedName]) {
         scorerData[normalizedName] = { goals: 0, team: t2Info.name, flagCode: t2Info.flagCode, displayName: scorer };
       }

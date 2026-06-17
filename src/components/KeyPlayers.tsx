@@ -13,6 +13,13 @@ interface KeyPlayersProps {
 const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onBack }) => {
   // Calculate goals for each player
   const playerGoals: { [name: string]: number } = {};
+
+  const normalizeName = (name: string) => name.replace(/\s+/g, ' ').trim().toUpperCase();
+  const isOwnGoal = (scorer: string) => /(?:\bOG\b|\(OG\))/i.test(scorer);
+  const parseScorers = (scorers?: string) =>
+    (scorers?.split(',') || [])
+      .map(s => s.trim())
+      .filter(s => s && !isOwnGoal(s));
   
   const completedMatches = matches.filter(m => 
     m['Team 1 Score'] !== null && m['Team 1 Score'] !== undefined &&
@@ -21,13 +28,22 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
   );
 
   completedMatches.forEach(match => {
-    const t1Scorers = (match['Team 1 scorers']?.split(',') || []).map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
-    const t2Scorers = (match['Team 2 scorers']?.split(',') || []).map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
+    const t1Scorers = parseScorers(match['Team 1 scorers']);
+    const t2Scorers = parseScorers(match['Team 2 scorers']);
     
     [...t1Scorers, ...t2Scorers].forEach(scorer => {
-      const normalizedScorer = scorer.replace(/\s+/g, ' ').trim().toUpperCase();
+      const normalizedScorer = normalizeName(scorer);
       playerGoals[normalizedScorer] = (playerGoals[normalizedScorer] || 0) + 1;
     });
+  });
+
+  const sortedPlayers = [...keyPlayers].sort((a, b) => {
+    const goalsA = playerGoals[normalizeName(a['Player Name'])] || 0;
+    const goalsB = playerGoals[normalizeName(b['Player Name'])] || 0;
+    if (goalsB !== goalsA) {
+      return goalsB - goalsA;
+    }
+    return normalizeName(a['Player Name']).localeCompare(normalizeName(b['Player Name']));
   });
 
   const getFlagCode = (countryName: string) => {
@@ -53,8 +69,8 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {keyPlayers.map((player, index) => {
-          const normalizedPlayerName = player['Player Name'].replace(/\s+/g, ' ').trim().toUpperCase();
+        {sortedPlayers.map((player, index) => {
+          const normalizedPlayerName = normalizeName(player['Player Name']);
           const goals = playerGoals[normalizedPlayerName] || 0;
           const flagCode = getFlagCode(player['Country']);
 
