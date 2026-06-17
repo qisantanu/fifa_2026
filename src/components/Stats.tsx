@@ -359,12 +359,12 @@ const Stats: React.FC<StatsProps> = ({ matches, teams, onPlayerClick }) => {
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-4 md:p-8 flex flex-col justify-between"
+          onClick={onPlayerClick}
+          className="glass-card p-4 md:p-8 flex flex-col justify-between cursor-pointer"
         >
           <div>
             <h3 
-              onClick={onPlayerClick}
-              className="text-sm md:text-lg font-black italic text-cyber-magenta uppercase mb-6 md:mb-8 flex items-center gap-3 md:gap-4 cursor-pointer group hover:text-white transition-colors"
+              className="text-sm md:text-lg font-black italic text-cyber-magenta uppercase mb-6 md:mb-8 flex items-center gap-3 md:gap-4 group hover:text-white transition-colors"
             >
               <span className="w-2 h-2 bg-cyber-magenta rounded-full group-hover:animate-ping"></span>
               Golden Boot // Leaderboard
