@@ -1,19 +1,32 @@
 import React from 'react';
-import { Trophy, LayoutDashboard, GitMerge, BarChart3 } from 'lucide-react';
+import { Trophy, LayoutDashboard, GitMerge, BarChart3, Wifi } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isSyncing?: boolean;
+  lastSyncTime?: Date | null;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isSyncing = false, lastSyncTime = null }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'standings', label: 'Standings', icon: <Trophy size={20} /> },
     { id: 'bracket', label: 'Bracket', icon: <GitMerge size={20} /> },
     { id: 'stats', label: 'Statistics', icon: <BarChart3 size={20} /> },
   ];
+
+  const formatSyncTime = (date: Date | null) => {
+    if (!date) return '';
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    
+    if (diffSecs < 60) return 'just now';
+    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+    return `${Math.floor(diffSecs / 3600)}h ago`;
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -48,6 +61,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
             </button>
           ))}
         </nav>
+
+        <div className="flex items-center gap-2 text-[11px] md:text-xs text-gray-400 mt-2 md:mt-0">
+          <Wifi size={14} className={isSyncing ? 'text-cyber-blue animate-pulse' : 'text-gray-500'} />
+          <span className={isSyncing ? 'text-cyber-blue' : 'text-gray-400'}>
+            {isSyncing ? 'Syncing...' : formatSyncTime(lastSyncTime) || 'Synced'}
+          </span>
+        </div>
       </header>
 
       <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full">
