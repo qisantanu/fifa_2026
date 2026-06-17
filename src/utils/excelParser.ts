@@ -32,7 +32,19 @@ export interface Team {
   FlagCode: string;
 }
 
-export const parseWorldCupData = async (filePath: string) => {
+export interface KeyPlayer {
+  'Player Name': string;
+  'Country': string;
+  'Image': string;
+}
+
+export interface WorldCupData {
+  matches: Match[];
+  teams: Team[];
+  keyPlayers: KeyPlayer[];
+}
+
+export const parseWorldCupData = async (filePath: string): Promise<WorldCupData> => {
   try {
     const response = await fetch(filePath);
     const arrayBuffer = await response.arrayBuffer();
@@ -40,13 +52,15 @@ export const parseWorldCupData = async (filePath: string) => {
 
     const matchesSheet = workbook.Sheets['Matches'];
     const teamsSheet = workbook.Sheets['Teams'];
+    const playersSheet = workbook.Sheets['Key Players'];
 
     const matches = XLSX.utils.sheet_to_json<Match>(matchesSheet);
     const teams = XLSX.utils.sheet_to_json<Team>(teamsSheet);
+    const keyPlayers = playersSheet ? XLSX.utils.sheet_to_json<KeyPlayer>(playersSheet) : [];
 
-    return { matches, teams };
+    return { matches, teams, keyPlayers };
   } catch (error) {
     console.error('Error parsing Excel data:', error);
-    return { matches: [], teams: [] };
+    return { matches: [], teams: [], keyPlayers: [] };
   }
 };

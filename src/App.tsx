@@ -4,12 +4,13 @@ import Dashboard from './components/Dashboard';
 import Standings from './components/Standings';
 import Bracket from './components/Bracket';
 import Stats from './components/Stats';
+import KeyPlayers from './components/KeyPlayers';
 import { useTournamentData } from './hooks/useTournamentData';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { matches, teams, loading, isSyncing, lastSyncTime } = useTournamentData();
+  const { matches, teams, keyPlayers, loading, isSyncing, lastSyncTime } = useTournamentData();
 
   if (loading) {
     return (
@@ -29,7 +30,9 @@ function App() {
       case 'bracket':
         return <Bracket matches={matches} />;
       case 'stats':
-        return <Stats matches={matches} teams={teams} />;
+        return <Stats matches={matches} teams={teams} onPlayerClick={() => setActiveTab('players')} />;
+      case 'players':
+        return <KeyPlayers matches={matches} teams={teams} keyPlayers={keyPlayers} onBack={() => setActiveTab('stats')} />;
       default:
         return <Dashboard matches={matches} teams={teams} />;
     }

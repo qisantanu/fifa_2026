@@ -6,12 +6,13 @@ import type { Match, Team } from '../utils/excelParser';
 interface StatsProps {
   matches: Match[];
   teams: Team[];
+  onPlayerClick?: () => void;
 }
 
 const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ matches, teams }) => {
   const completedMatches = matches.filter(m => 
-    typeof m['Team 1 Score'] === 'number' && 
-    typeof m['Team 2 Score'] === 'number' &&
+    m['Team 1 Score'] !== null && m['Team 1 Score'] !== undefined &&
+    m['Team 2 Score'] !== null && m['Team 2 Score'] !== undefined &&
     m.Winner && m.Winner !== 'TBD'
   );
   
@@ -40,7 +41,8 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
       if (opponentScore === 0) cleanSheets++;
 
       if (scorersStr) {
-        allScorers.push(...scorersStr.split(',').map(s => s.trim()).filter(Boolean));
+        const scorers = scorersStr.split(',').map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
+        allScorers.push(...scorers);
       }
     });
 
@@ -69,7 +71,22 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
 
   const offensiveStats = [...teamStats].sort((a, b) => b.totalGoals - a.totalGoals).slice(0, 5);
   const defensiveStats = [...teamStats].sort((a, b) => a.goalsConceded - b.goalsConceded || b.cleanSheets - a.cleanSheets).slice(0, 5);
-  const fairPlayStats = [...teamStats].sort((a, b) => a.fairPlayPoints - b.fairPlayPoints).slice(0, 5);
+  const victoryStats = completedMatches.map(m => {
+    const score1 = m['Team 1 Score'] || 0;
+    const score2 = m['Team 2 Score'] || 0;
+    const diff = Math.abs(score1 - score2);
+    const winnerName = score1 > score2 ? m['Team 1'] : (score2 > score1 ? m['Team 2'] : 'Draw');
+    const winnerTeam = teams.find(t => t.TeamName === winnerName);
+    
+    return {
+      match: `${m['Team 1']} vs ${m['Team 2']}`,
+      score: `${score1} - ${score2}`,
+      diff,
+      winner: winnerName,
+      flagCode: winnerTeam?.FlagCode?.toLowerCase() || ''
+    };
+  }).sort((a, b) => b.diff - a.diff).slice(0, 5);
+
   const disciplineStats = [...teamStats].sort((a, b) => b.fairPlayPoints - a.fairPlayPoints).slice(0, 5);
   const balanceStats = [...teamStats].sort((a, b) => a.dependency - b.dependency).slice(0, 5);
   const noGoalsTeams = teams.filter(t => !teamStats.find(ts => ts.name === t.TeamName)?.totalGoals && completedMatches.some(m => m['Team 1'] === t.TeamName || m['Team 2'] === t.TeamName));
@@ -87,14 +104,14 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
             {offensiveStats.map((team) => (
               <div key={team.name} className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">
-                  <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm grayscale group-hover:grayscale-0 transition-all" alt="" />
-                  <span className="text-[10px] font-bold text-gray-300 uppercase">{team.name}</span>
+                  <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm transition-all" alt="" />
+                  <span className="text-[10px] font-bold text-white uppercase">{team.name}</span>
                 </div>
                 <div className="flex items-center gap-3 flex-1 max-w-[100px] ml-4">
                   <div className="h-0.5 flex-1 bg-orange-500/10 overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${(team.totalGoals / (offensiveStats[0]?.totalGoals || 1)) * 100}%` }} className="h-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
                   </div>
-                  <span className="text-orange-500 font-mono text-[10px] w-4 text-right">{team.totalGoals}</span>
+                  <span className="text-orange-500 font-black italic text-[10px] w-4 text-right">{team.totalGoals}</span>
                 </div>
               </div>
             ))}
@@ -163,33 +180,28 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-        {/* Fair Play Index */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 border-l-4 border-l-green-500/50">
-          <h3 className="text-sm font-black italic text-green-500 uppercase mb-6 flex items-center gap-3">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
-            Fair Play // Index
+        {/* Biggest Victories */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 border-l-4 border-l-cyan-500/50">
+          <h3 className="text-sm font-black italic text-cyan-500 uppercase mb-6 flex items-center gap-3">
+            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-ping"></span>
+            Biggest Victories // Dominance Records
           </h3>
           <div className="space-y-4">
-            {fairPlayStats.map((team, i) => (
-              <div key={team.name} className="flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-mono text-gray-500">{i + 1}</span>
-                  <img src={`https://flagcdn.com/w40/${team.flagCode}.png`} className="w-4 h-3 object-cover rounded-sm" alt="" />
-                  <span className="text-xs font-bold text-white uppercase">{team.name}</span>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-yellow-500">{team.yellowCards}</span>
-                        <div className="w-2 h-3 bg-yellow-500 rounded-sm"></div>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-red-500">{team.redCards}</span>
-                        <div className="w-2 h-3 bg-red-500 rounded-sm"></div>
-                    </div>
+            {victoryStats.map((record, i) => (
+              <div key={i} className="flex items-center justify-between group">
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="text-[10px] font-mono text-gray-500">REC-0{i + 1}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-white uppercase truncate">{record.match}</span>
+                    <span className="text-[8px] font-mono text-gray-500 uppercase tracking-tighter">Gap Index: +{record.diff}</span>
                   </div>
-                  <div className="text-right min-w-[30px]">
-                    <span className="text-lg font-black text-green-500 italic">{team.fairPlayPoints}</span>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded border border-white/5">
+                    {record.flagCode && (
+                        <img src={`https://flagcdn.com/w20/${record.flagCode}.png`} className="w-3 h-2" alt="" />
+                    )}
+                    <span className="text-[10px] font-black text-cyan-400 italic">{record.score}</span>
                   </div>
                 </div>
               </div>
@@ -241,10 +253,10 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
   );
 };
 
-const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
+const Stats: React.FC<StatsProps> = ({ matches, teams, onPlayerClick }) => {
   const completedMatches = matches.filter(m => 
-    typeof m['Team 1 Score'] === 'number' && 
-    typeof m['Team 2 Score'] === 'number' &&
+    m['Team 1 Score'] !== null && m['Team 1 Score'] !== undefined &&
+    m['Team 2 Score'] !== null && m['Team 2 Score'] !== undefined &&
     m.Winner && m.Winner !== 'TBD'
   );
   
@@ -260,7 +272,7 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
   }, []);
 
   // Parse scorers and associate with teams
-  const scorerData: { [name: string]: { goals: number, team: string, flagCode: string } } = {};
+  const scorerData: { [name: string]: { goals: number, team: string, flagCode: string, displayName: string } } = {};
   
   const getTeamInfo = (teamName: string) => {
     const team = teams.find(t => t.TeamName === teamName);
@@ -274,26 +286,28 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
     const t1Info = getTeamInfo(match['Team 1']);
     const t2Info = getTeamInfo(match['Team 2']);
     
-    const t1Scorers = match['Team 1 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
-    const t2Scorers = match['Team 2 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    const t1Scorers = (match['Team 1 scorers']?.split(',') || []).map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
+    const t2Scorers = (match['Team 2 scorers']?.split(',') || []).map(s => s.trim()).filter(s => s && !s.toUpperCase().includes('OG'));
     
     t1Scorers.forEach(scorer => {
-      if (!scorerData[scorer]) {
-        scorerData[scorer] = { goals: 0, team: t1Info.name, flagCode: t1Info.flagCode };
+      const normalizedName = scorer.replace(/\s+/g, ' ').trim().toUpperCase();
+      if (!scorerData[normalizedName]) {
+        scorerData[normalizedName] = { goals: 0, team: t1Info.name, flagCode: t1Info.flagCode, displayName: scorer };
       }
-      scorerData[scorer].goals++;
+      scorerData[normalizedName].goals++;
     });
 
     t2Scorers.forEach(scorer => {
-      if (!scorerData[scorer]) {
-        scorerData[scorer] = { goals: 0, team: t2Info.name, flagCode: t2Info.flagCode };
+      const normalizedName = scorer.replace(/\s+/g, ' ').trim().toUpperCase();
+      if (!scorerData[normalizedName]) {
+        scorerData[normalizedName] = { goals: 0, team: t2Info.name, flagCode: t2Info.flagCode, displayName: scorer };
       }
-      scorerData[scorer].goals++;
+      scorerData[normalizedName].goals++;
     });
   });
 
   const topScorers = Object.entries(scorerData)
-    .map(([name, data]) => ({ name, ...data }))
+    .map(([_, data]) => ({ name: data.displayName, ...data }))
     .sort((a, b) => b.goals - a.goals)
     .slice(0, 5);
 
@@ -341,9 +355,13 @@ const Stats: React.FC<StatsProps> = ({ matches, teams }) => {
           className="glass-card p-4 md:p-8 flex flex-col justify-between"
         >
           <div>
-            <h3 className="text-sm md:text-lg font-black italic text-cyber-magenta uppercase mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
-              <span className="w-2 h-2 bg-cyber-magenta rounded-full"></span>
+            <h3 
+              onClick={onPlayerClick}
+              className="text-sm md:text-lg font-black italic text-cyber-magenta uppercase mb-6 md:mb-8 flex items-center gap-3 md:gap-4 cursor-pointer group hover:text-white transition-colors"
+            >
+              <span className="w-2 h-2 bg-cyber-magenta rounded-full group-hover:animate-ping"></span>
               Golden Boot // Leaderboard
+              <span className="text-[8px] font-mono text-cyber-magenta/40 group-hover:text-cyber-magenta ml-auto">VIEW ALL →</span>
             </h3>
             <div className="space-y-3 md:space-y-4">
               {topScorers.length > 0 ? (
