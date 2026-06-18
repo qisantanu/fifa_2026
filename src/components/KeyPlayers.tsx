@@ -37,14 +37,18 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
     });
   });
 
-  const sortedPlayers = [...keyPlayers].sort((a, b) => {
-    const goalsA = playerGoals[normalizeName(a['Player Name'])] || 0;
-    const goalsB = playerGoals[normalizeName(b['Player Name'])] || 0;
-    if (goalsB !== goalsA) {
-      return goalsB - goalsA;
+  const playersByCountry = keyPlayers.reduce((acc: Record<string, KeyPlayer[]>, player) => {
+    const country = player['Country'] || 'Unknown';
+    if (!acc[country]) {
+      acc[country] = [];
     }
-    return normalizeName(a['Player Name']).localeCompare(normalizeName(b['Player Name']));
-  });
+    acc[country].push(player);
+    return acc;
+  }, {});
+
+  const countryEntries = Object.entries(playersByCountry)
+    .filter(([, players]) => players.length > 0)
+    .sort(([countryA], [countryB]) => countryA.localeCompare(countryB));
 
   const getFlagCode = (countryName: string) => {
     return teams.find(t => t.TeamName === countryName)?.FlagCode?.toLowerCase() || '';
@@ -68,58 +72,90 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
         <div className="h-px flex-1 bg-gradient-to-r from-cyber-magenta/20 to-transparent ml-8 hidden md:block"></div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {sortedPlayers.map((player, index) => {
-          const normalizedPlayerName = normalizeName(player['Player Name']);
-          const goals = playerGoals[normalizedPlayerName] || 0;
-          const flagCode = getFlagCode(player['Country']);
-
-          return (
-            <motion.div
-              key={player['Player Name']}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="glass-card group overflow-hidden border-b-4 border-b-cyber-magenta/30 hover:border-b-cyber-magenta transition-all duration-500"
-            >
-              <div className="aspect-[4/5] relative overflow-hidden bg-gray-900">
-                <img 
-                  src={player['Image']} 
-                  alt={player['Player Name']}
-                  loading="lazy"
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-cyber-black via-transparent to-transparent opacity-60"></div>
-                
-                {/* Goal Badge */}
-                <div className="absolute top-4 right-4 bg-cyber-magenta text-white px-3 py-1 rounded-full text-xs font-black italic shadow-neon-magenta transform skew-x-12">
-                   {goals} GOALS
-                </div>
-              </div>
-
-              <div className="p-4 relative">
-                <div className="flex items-center gap-3 mb-1">
-                  {flagCode && (
-                    <img 
-                      src={`https://flagcdn.com/w40/${flagCode}.png`} 
-                      alt={player['Country']}
-                      className="w-4 h-3 object-cover rounded-sm border border-white/10"
-                    />
-                  )}
-                  <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{player['Country']}</span>
-                </div>
-                <h3 className="text-lg font-black text-white uppercase italic tracking-tighter group-hover:text-cyber-blue transition-colors">
-                  {player['Player Name']}
+      <div className="space-y-10">
+        {countryEntries.map(([country, players]) => (
+          <div key={country} className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
+                  {country}
                 </h3>
-                
-                <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
-                  <div className="text-[8px] font-mono text-cyber-blue uppercase">Status: Elite Asset</div>
-                  <div className="w-2 h-2 bg-cyber-blue rounded-full animate-ping"></div>
-                </div>
+                <p className="text-sm text-gray-400 uppercase tracking-[0.2em]">
+                  {players.length} Player{players.length !== 1 ? 's' : ''}
+                </p>
               </div>
-            </motion.div>
-          );
-        })}
+              {getFlagCode(country) && (
+                <img
+                  src={`https://flagcdn.com/w40/${getFlagCode(country)}.png`}
+                  alt={country}
+                  className="w-10 h-7 object-cover rounded-sm border border-white/10"
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {players
+                .sort((a, b) => {
+                  const goalsA = playerGoals[normalizeName(a['Player Name'])] || 0;
+                  const goalsB = playerGoals[normalizeName(b['Player Name'])] || 0;
+                  if (goalsB !== goalsA) {
+                    return goalsB - goalsA;
+                  }
+                  return normalizeName(a['Player Name']).localeCompare(normalizeName(b['Player Name']));
+                })
+                .map((player, index) => {
+                  const normalizedPlayerName = normalizeName(player['Player Name']);
+                  const goals = playerGoals[normalizedPlayerName] || 0;
+                  const flagCode = getFlagCode(player['Country']);
+
+                  return (
+                    <motion.div
+                      key={`${country}-${player['Player Name']}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="glass-card group overflow-hidden border-b-4 border-b-cyber-magenta/30 hover:border-b-cyber-magenta transition-all duration-500"
+                    >
+                      <div className="aspect-[4/5] relative overflow-hidden bg-gray-900">
+                        <img
+                          src={player['Image']}
+                          alt={player['Player Name']}
+                          loading="lazy"
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-cyber-black via-transparent to-transparent opacity-60"></div>
+
+                        <div className="absolute top-4 right-4 bg-cyber-magenta text-white px-3 py-1 rounded-full text-xs font-black italic shadow-neon-magenta transform skew-x-12">
+                          {goals} GOALS
+                        </div>
+                      </div>
+
+                      <div className="p-4 relative">
+                        <div className="flex items-center gap-3 mb-1">
+                          {flagCode && (
+                            <img
+                              src={`https://flagcdn.com/w40/${flagCode}.png`}
+                              alt={player['Country']}
+                              className="w-4 h-3 object-cover rounded-sm border border-white/10"
+                            />
+                          )}
+                          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{player['Country']}</span>
+                        </div>
+                        <h3 className="text-lg font-black text-white uppercase italic tracking-tighter group-hover:text-cyber-blue transition-colors">
+                          {player['Player Name']}
+                        </h3>
+
+                        <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                          <div className="text-[8px] font-mono text-cyber-blue uppercase">Status: Elite Asset</div>
+                          <div className="w-2 h-2 bg-cyber-blue rounded-full animate-ping"></div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
