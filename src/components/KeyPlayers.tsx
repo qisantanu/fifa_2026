@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, ChevronLeft } from 'lucide-react';
 import type { Match, Team, KeyPlayer } from '../utils/excelParser';
@@ -11,6 +11,8 @@ interface KeyPlayersProps {
 }
 
 const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onBack }) => {
+  const [sortBy, setSortBy] = useState<'alphabetical' | 'goals'>('alphabetical');
+  
   // Calculate goals for each player
   const playerGoals: { [name: string]: number } = {};
 
@@ -46,9 +48,25 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
     return acc;
   }, {});
 
+  const getCountryGoals = (players: KeyPlayer[]) => {
+    return players.reduce((sum, player) => {
+      const name = normalizeName(player['Player Name']);
+      return sum + (playerGoals[name] || 0);
+    }, 0);
+  };
+
   const countryEntries = Object.entries(playersByCountry)
     .filter(([, players]) => players.length > 0)
-    .sort(([countryA], [countryB]) => countryA.localeCompare(countryB));
+    .sort((a, b) => {
+      if (sortBy === 'goals') {
+        const goalsA = getCountryGoals(a[1]);
+        const goalsB = getCountryGoals(b[1]);
+        if (goalsB !== goalsA) {
+          return goalsB - goalsA;
+        }
+      }
+      return a[0].localeCompare(b[0]);
+    });
 
   const getFlagCode = (countryName: string) => {
     return teams.find(t => t.TeamName === countryName)?.FlagCode?.toLowerCase() || '';
@@ -56,7 +74,7 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
@@ -64,26 +82,57 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
           >
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           </button>
-          <h2 className="text-2xl font-black italic tracking-widest text-white uppercase flex items-center gap-4">
+          <h2 className="text-xl md:text-2xl font-black italic tracking-widest text-white uppercase flex items-center gap-4">
             <Trophy className="text-cyber-magenta" size={24} />
             Key Players // Global Matrix
           </h2>
         </div>
-        <div className="h-px flex-1 bg-gradient-to-r from-cyber-magenta/20 to-transparent ml-8 hidden md:block"></div>
+        <div className="h-px flex-1 bg-gradient-to-r from-cyber-magenta/20 to-transparent mx-8 hidden xl:block"></div>
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1 self-start md:self-auto">
+          <span className="text-[10px] font-mono text-gray-500 uppercase pl-3 pr-1 select-none">Sort:</span>
+          <button
+            onClick={() => setSortBy('alphabetical')}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${
+              sortBy === 'alphabetical'
+                ? 'bg-cyber-magenta text-white shadow-neon-magenta'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Country (A-Z)
+          </button>
+          <button
+            onClick={() => setSortBy('goals')}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ${
+              sortBy === 'goals'
+                ? 'bg-cyber-magenta text-white shadow-neon-magenta'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Total Goals
+          </button>
+        </div>
       </div>
 
       <div className="space-y-10">
-        {countryEntries.map(([country, players]) => (
-          <div key={country} className="space-y-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
-                  {country}
-                </h3>
-                <p className="text-sm text-gray-400 uppercase tracking-[0.2em]">
-                  {players.length} Player{players.length !== 1 ? 's' : ''}
-                </p>
-              </div>
+        {countryEntries.map(([country, players]) => {
+          const totalGoals = getCountryGoals(players);
+          return (
+            <div key={country} className="space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest text-white">
+                    {country}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[10px] font-mono text-gray-400 uppercase tracking-[0.2em]">
+                      {players.length} Player{players.length !== 1 ? 's' : ''}
+                    </p>
+                    <span className="text-gray-600 text-xs">•</span>
+                    <p className="text-[10px] font-mono text-cyber-magenta font-black uppercase tracking-[0.2em] shadow-neon-magenta/20">
+                      {totalGoals} Goal{totalGoals !== 1 ? 's' : ''} Total
+                    </p>
+                  </div>
+                </div>
               {getFlagCode(country) && (
                 <img
                   src={`https://flagcdn.com/w40/${getFlagCode(country)}.png`}
@@ -155,7 +204,7 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
                 })}
             </div>
           </div>
-        ))}
+        );})}
       </div>
     </div>
   );
