@@ -8,6 +8,65 @@ interface DashboardProps {
   teams: Team[];
 }
 
+const QuantumFact: React.FC<{ fact?: string }> = ({ fact }) => {
+  const [showFact, setShowFact] = React.useState(false);
+  const [loadingText, setLoadingText] = React.useState('DECRYPTING FACT...');
+
+  React.useEffect(() => {
+    // 4.5 seconds delay to decrypt the fact
+    const timer = setTimeout(() => {
+      if (fact && fact.trim()) {
+        setShowFact(true);
+      }
+    }, 4500);
+
+    const phrases = [
+      'INITIATING QUANTUM DECRYPTOR...',
+      'EXTRACTING MATCH INTEL...',
+      'COMPUTING HIGHLIGHT MATRIX...',
+      'SYNAPSE SCANNING FOR DETAILS...',
+      'DECRYPTING TACTICAL MEMORY...'
+    ];
+    let phraseIndex = 0;
+
+    const interval = setInterval(() => {
+      phraseIndex = (phraseIndex + 1) % phrases.length;
+      setLoadingText(phrases[phraseIndex]);
+    }, 1200);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [fact]);
+
+  return (
+    <div className="mt-3 p-3 bg-cyber-black/50 rounded border border-cyber-blue/20 text-[10px] md:text-xs font-mono leading-relaxed relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-cyber-blue/5 to-transparent pointer-events-none" />
+      <div className="flex items-start gap-2">
+        <span className="text-cyber-blue select-none font-bold shrink-0">[FACT_INTEL]</span>
+        <div className="flex-1 text-gray-300">
+          {showFact && fact ? (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8 }}
+            >
+              {fact}
+            </motion.span>
+          ) : (
+            <div className="flex items-center gap-1.5 text-cyber-blue/70">
+              <span className="inline-block w-1.5 h-1.5 bg-cyber-blue rounded-full animate-ping shrink-0" />
+              <span className="animate-pulse">{loadingText}</span>
+              <span className="w-1.5 h-3.5 bg-cyber-blue/80 animate-caret shrink-0" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
   const [currentPage, setCurrentPage] = React.useState(0);
   const matchesPerPage = 6;
@@ -140,7 +199,8 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
                     </div>
                   </div>
                 </div>
-                
+                <QuantumFact fact={match.InterestingFact || match.InterstingFact} />
+
                 <div className="mt-4 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-[8px] md:text-[10px] font-mono text-gray-400">
                   <span>{formatDate(match.Date)}</span>
                   <div className="flex items-center gap-3">

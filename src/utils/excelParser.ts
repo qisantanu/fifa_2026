@@ -16,6 +16,8 @@ export interface Match {
   'Team 2 Yellow'?: number;
   'Team 1 Red'?: number;
   'Team 2 Red'?: number;
+  InterestingFact?: string;
+  InterstingFact?: string;
 }
 
 export const excelDateToJS = (serial: number | string): Date => {

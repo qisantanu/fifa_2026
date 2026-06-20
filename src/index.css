@@ -61,3 +61,13 @@
     box-shadow: var(--shadow-neon);
   }
 }
+
+@keyframes caret-blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.animate-caret {
+  animation: caret-blink 0.8s infinite;
+}
+

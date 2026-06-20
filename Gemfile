@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
 
-gem 'rubyxl'
-gem 'dotenv'}
+gem 'rubyXL'
+gem 'dotenv'
+gem 'pry'
