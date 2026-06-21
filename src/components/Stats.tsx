@@ -91,6 +91,53 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
   const balanceStats = [...teamStats].sort((a, b) => a.dependency - b.dependency).slice(0, 5);
   const noGoalsTeams = teams.filter(t => !teamStats.find(ts => ts.name === t.TeamName)?.totalGoals && completedMatches.some(m => m['Team 1'] === t.TeamName || m['Team 2'] === t.TeamName));
 
+  const isOwnGoal = (scorer: string) => /(?:\bOG\b|\(OG\))/i.test(scorer);
+  const extractNameFromOG = (scorer: string) => scorer.replace(/(?:\bOG\b|\(OG\))/i, '').trim();
+  const normalizeName = (name: string) => name.replace(/\s+/g, ' ').trim().toUpperCase();
+
+  const ownGoalData: { [name: string]: { ownGoals: number, team: string, flagCode: string, displayName: string } } = {};
+
+  const getTeamInfo = (teamName: string) => {
+    const team = teams.find(t => t.TeamName === teamName);
+    return {
+      name: teamName,
+      flagCode: team?.FlagCode?.toLowerCase() || ''
+    };
+  };
+
+  completedMatches.forEach(match => {
+    const t1Info = getTeamInfo(match['Team 1']);
+    const t2Info = getTeamInfo(match['Team 2']);
+    
+    const t1Scorers = match['Team 1 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    t1Scorers.forEach(scorer => {
+      if (isOwnGoal(scorer)) {
+        const cleanName = extractNameFromOG(scorer);
+        const normalizedName = normalizeName(cleanName);
+        if (!ownGoalData[normalizedName]) {
+          ownGoalData[normalizedName] = { ownGoals: 0, team: t2Info.name, flagCode: t2Info.flagCode, displayName: cleanName };
+        }
+        ownGoalData[normalizedName].ownGoals++;
+      }
+    });
+
+    const t2Scorers = match['Team 2 scorers']?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    t2Scorers.forEach(scorer => {
+      if (isOwnGoal(scorer)) {
+        const cleanName = extractNameFromOG(scorer);
+        const normalizedName = normalizeName(cleanName);
+        if (!ownGoalData[normalizedName]) {
+          ownGoalData[normalizedName] = { ownGoals: 0, team: t1Info.name, flagCode: t1Info.flagCode, displayName: cleanName };
+        }
+        ownGoalData[normalizedName].ownGoals++;
+      }
+    });
+  });
+
+  const ownGoalList = Object.entries(ownGoalData)
+    .map(([_, data]) => ({ name: data.displayName, ...data }))
+    .sort((a, b) => b.ownGoals - a.ownGoals);
+
   return (
     <div className="space-y-8 mt-12">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -179,7 +226,7 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mt-8">
         {/* Biggest Victories */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-8 border-l-4 border-l-cyan-500/50">
           <h3 className="text-sm font-black italic text-cyan-500 uppercase mb-6 flex items-center gap-3">
@@ -206,6 +253,41 @@ const AnalyticalInsights: React.FC<{ matches: Match[], teams: Team[] }> = ({ mat
                 </div>
               </div>
             ))}
+          </div>
+        </motion.div>
+
+        {/* Own Goal Tracker */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-8 border-l-4 border-l-cyber-magenta/50">
+          <h3 className="text-sm font-black italic text-cyber-magenta uppercase mb-6 flex items-center gap-3">
+            <span className="w-1.5 h-1.5 bg-cyber-magenta rounded-full animate-ping"></span>
+            Own Goal Tracker // Anomalous Incidents
+          </h3>
+          <div className="space-y-4">
+            {ownGoalList.length > 0 ? (
+              ownGoalList.map((player, i) => (
+                <div key={player.name} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-mono text-gray-500">OG-0{i + 1}</span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-white uppercase tracking-wider">{player.name}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {player.flagCode && (
+                          <img src={`https://flagcdn.com/w20/${player.flagCode}.png`} className="w-3 h-2 object-cover rounded-sm border border-white/10" alt="" />
+                        )}
+                        <span className="text-[7px] font-mono text-gray-500 uppercase">{player.team}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-cyber-magenta font-mono font-black italic text-xs">{player.ownGoals} OG</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-500 text-[10px] font-mono py-8 text-center uppercase tracking-widest">
+                No Own Goals Recorded
+              </div>
+            )}
           </div>
         </motion.div>
 

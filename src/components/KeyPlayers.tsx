@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Trophy, ChevronLeft } from 'lucide-react';
 import type { Match, Team, KeyPlayer } from '../utils/excelParser';
 
-const useCentered = (rootMargin = '-30% 0px -30% 0px') => {
+const useCentered = (rootMargin = '-60% 0px -60% 0px') => {
   const [isCentered, setIsCentered] = useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
 
@@ -36,11 +36,12 @@ const useCentered = (rootMargin = '-30% 0px -30% 0px') => {
 interface PlayerCardProps {
   player: KeyPlayer;
   goals: number;
+  ownGoals: number;
   flagCode: string;
   index: number;
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ player, goals, flagCode, index }) => {
+const PlayerCard: React.FC<PlayerCardProps> = ({ player, goals, ownGoals, flagCode, index }) => {
   const [ref, isCentered] = useCentered();
 
   return (
@@ -62,8 +63,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, goals, flagCode, index 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-cyber-black via-transparent to-transparent opacity-60"></div>
 
-        <div className="absolute top-1 right-1 sm:top-4 sm:right-4 bg-cyber-magenta text-white px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-xs font-black italic shadow-neon-magenta transform skew-x-12">
-          {goals} GOALS
+        <div className="absolute top-1 right-1 sm:top-4 sm:right-4 flex flex-col gap-1 items-end">
+          <div className="bg-cyber-magenta text-white px-1.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[8px] sm:text-xs font-black italic shadow-neon-magenta transform skew-x-12">
+            {goals} GOALS
+          </div>
+          {ownGoals > 0 && (
+            <div className="bg-red-600 text-white px-1.5 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[7px] sm:text-[10px] font-black italic shadow-[0_0_8px_rgba(220,38,38,0.5)] transform skew-x-12">
+              {ownGoals} OWN GOAL{ownGoals > 1 ? 'S' : ''}
+            </div>
+          )}
         </div>
       </div>
 
@@ -101,15 +109,17 @@ interface KeyPlayersProps {
 const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onBack }) => {
   const [sortBy, setSortBy] = useState<'alphabetical' | 'goals'>('alphabetical');
   
-  // Calculate goals for each player
+  // Calculate goals and own goals for each player
   const playerGoals: { [name: string]: number } = {};
+  const playerOwnGoals: { [name: string]: number } = {};
 
   const normalizeName = (name: string) => name.replace(/\s+/g, ' ').trim().toUpperCase();
   const isOwnGoal = (scorer: string) => /(?:\bOG\b|\(OG\))/i.test(scorer);
+  const extractNameFromOG = (scorer: string) => scorer.replace(/(?:\bOG\b|\(OG\))/i, '').trim();
   const parseScorers = (scorers?: string) =>
     (scorers?.split(',') || [])
       .map(s => s.trim())
-      .filter(s => s && !isOwnGoal(s));
+      .filter(Boolean);
   
   const completedMatches = matches.filter(m => 
     m['Team 1 Score'] !== null && m['Team 1 Score'] !== undefined &&
@@ -121,13 +131,40 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
     const t1Scorers = parseScorers(match['Team 1 scorers']);
     const t2Scorers = parseScorers(match['Team 2 scorers']);
     
-    [...t1Scorers, ...t2Scorers].forEach(scorer => {
-      const normalizedScorer = normalizeName(scorer);
-      playerGoals[normalizedScorer] = (playerGoals[normalizedScorer] || 0) + 1;
+    t1Scorers.forEach(scorer => {
+      if (isOwnGoal(scorer)) {
+        const cleanName = extractNameFromOG(scorer);
+        const normalizedScorer = normalizeName(cleanName);
+        playerOwnGoals[normalizedScorer] = (playerOwnGoals[normalizedScorer] || 0) + 1;
+      } else {
+        const normalizedScorer = normalizeName(scorer);
+        playerGoals[normalizedScorer] = (playerGoals[normalizedScorer] || 0) + 1;
+      }
+    });
+
+    t2Scorers.forEach(scorer => {
+      if (isOwnGoal(scorer)) {
+        const cleanName = extractNameFromOG(scorer);
+        const normalizedScorer = normalizeName(cleanName);
+        playerOwnGoals[normalizedScorer] = (playerOwnGoals[normalizedScorer] || 0) + 1;
+      } else {
+        const normalizedScorer = normalizeName(scorer);
+        playerGoals[normalizedScorer] = (playerGoals[normalizedScorer] || 0) + 1;
+      }
     });
   });
 
-  const playersByCountry = keyPlayers.reduce((acc: Record<string, KeyPlayer[]>, player) => {
+  const activeKeyPlayers = keyPlayers.filter(player => {
+    const name = normalizeName(player['Player Name']);
+    return (playerGoals[name] || 0) > 0;
+  });
+
+  const ownGoalKeyPlayers = keyPlayers.filter(player => {
+    const name = normalizeName(player['Player Name']);
+    return (playerOwnGoals[name] || 0) > 0;
+  });
+
+  const playersByCountry = activeKeyPlayers.reduce((acc: Record<string, KeyPlayer[]>, player) => {
     const country = player['Country'] || 'Unknown';
     if (!acc[country]) {
       acc[country] = [];
@@ -243,6 +280,7 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
                 .map((player, index) => {
                   const normalizedPlayerName = normalizeName(player['Player Name']);
                   const goals = playerGoals[normalizedPlayerName] || 0;
+                  const ownGoals = playerOwnGoals[normalizedPlayerName] || 0;
                   const flagCode = getFlagCode(player['Country']);
 
                   return (
@@ -250,6 +288,7 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
                       key={`${country}-${player['Player Name']}`}
                       player={player}
                       goals={goals}
+                      ownGoals={ownGoals}
                       flagCode={flagCode}
                       index={index}
                     />
@@ -259,6 +298,37 @@ const KeyPlayers: React.FC<KeyPlayersProps> = ({ matches, teams, keyPlayers, onB
           </div>
         );})}
       </div>
+      {ownGoalKeyPlayers.length > 0 && (
+        <div className="mt-12 pt-8 border-t border-white/5 space-y-6">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg md:text-xl font-black italic tracking-widest text-red-500 uppercase flex items-center gap-3">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
+              Own Goal Incident Log // Anomalous Units
+            </h3>
+          </div>
+          <p className="text-gray-400 text-xs md:text-sm leading-relaxed max-w-2xl">
+            Detecting players registered in the Key Player directory who have registered own goals during active match protocols.
+          </p>
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4 md:gap-6">
+            {ownGoalKeyPlayers.map((player, index) => {
+              const name = normalizeName(player['Player Name']);
+              const goals = playerGoals[name] || 0;
+              const ownGoals = playerOwnGoals[name] || 0;
+              const flagCode = getFlagCode(player['Country']);
+              return (
+                <PlayerCard
+                  key={`og-${player['Player Name']}`}
+                  player={player}
+                  goals={goals}
+                  ownGoals={ownGoals}
+                  flagCode={flagCode}
+                  index={index}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
