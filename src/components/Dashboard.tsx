@@ -9,16 +9,19 @@ interface DashboardProps {
 }
 
 const QuantumFact: React.FC<{ fact?: string }> = ({ fact }) => {
+  const revealDelayMs = React.useMemo(() => 4500 + Math.floor(Math.random() * 10001), [fact]);
   const [showFact, setShowFact] = React.useState(false);
   const [loadingText, setLoadingText] = React.useState('DECRYPTING FACT...');
 
   React.useEffect(() => {
-    // 4.5 seconds delay to decrypt the fact
+    setShowFact(false);
+    setLoadingText('DECRYPTING FACT...');
+
     const timer = setTimeout(() => {
       if (fact && fact.trim()) {
         setShowFact(true);
       }
-    }, 4500);
+    }, revealDelayMs);
 
     const phrases = [
       'INITIATING QUANTUM DECRYPTOR...',
@@ -38,7 +41,7 @@ const QuantumFact: React.FC<{ fact?: string }> = ({ fact }) => {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, [fact]);
+  }, [fact, revealDelayMs]);
 
   return (
     <div className="mt-3 p-3 bg-cyber-black/50 rounded border border-cyber-blue/20 text-[10px] md:text-xs font-mono leading-relaxed relative overflow-hidden">

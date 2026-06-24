@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { matches, teams, keyPlayers, loading, isSyncing, lastSyncTime } = useTournamentData();
+  const { matches, teams, keyPlayers, loading, isSyncing, lastSyncTime, nextSyncInSeconds } = useTournamentData();
 
   if (loading) {
     return (
@@ -39,7 +39,13 @@ function App() {
   };
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} isSyncing={isSyncing} lastSyncTime={lastSyncTime}>
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      isSyncing={isSyncing}
+      lastSyncTime={lastSyncTime}
+      nextSyncInSeconds={nextSyncInSeconds}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}

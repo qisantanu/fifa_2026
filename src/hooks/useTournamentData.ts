@@ -24,11 +24,13 @@ export const useTournamentData = () => {
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [nextSyncInSeconds, setNextSyncInSeconds] = useState(60);
   const dataRef = useRef<TournamentData>({ matches: [], teams: [], keyPlayers: [] });
 
   const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrVA61c8op2d1vDrpjYNL-0Q_Y_SyzhBJ5-j0L4BMR3z5IfNW5tdlIJU54sbtyCg/pub?output=xlsx';
   const LOCAL_FILE_URL = `${import.meta.env.BASE_URL}data/world_cup_2026.xlsx`;
   const POLL_INTERVAL = 60000; // Poll every 60 seconds
+  const POLL_INTERVAL_SECONDS = POLL_INTERVAL / 1000;
 
   const fetchAndUpdateData = async (isInitial: boolean = false) => {
     if (!isInitial) {
@@ -79,6 +81,7 @@ export const useTournamentData = () => {
       }
     } finally {
       setLastSyncTime(new Date());
+      setNextSyncInSeconds(POLL_INTERVAL_SECONDS);
       if (!isInitial) {
         setIsSyncing(false);
       } else {
@@ -93,12 +96,20 @@ export const useTournamentData = () => {
 
     // Set up polling for updates
     const pollInterval = setInterval(() => {
+      setNextSyncInSeconds(0);
       fetchAndUpdateData(false);
     }, POLL_INTERVAL);
 
+    const countdownInterval = setInterval(() => {
+      setNextSyncInSeconds((seconds) => Math.max(seconds - 1, 0));
+    }, 1000);
+
     // Cleanup interval on unmount
-    return () => clearInterval(pollInterval);
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(countdownInterval);
+    };
   }, []);
 
-  return { matches, teams, keyPlayers, loading, isSyncing, lastSyncTime };
+  return { matches, teams, keyPlayers, loading, isSyncing, lastSyncTime, nextSyncInSeconds };
 };

@@ -7,9 +7,17 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   isSyncing?: boolean;
   lastSyncTime?: Date | null;
+  nextSyncInSeconds?: number;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isSyncing = false, lastSyncTime = null }) => {
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  activeTab,
+  setActiveTab,
+  isSyncing = false,
+  lastSyncTime = null,
+  nextSyncInSeconds = 0,
+}) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'standings', label: 'Standings', icon: <Trophy size={20} /> },
@@ -65,8 +73,15 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isSy
         <div className="flex items-center gap-2 text-[11px] md:text-xs text-gray-400 mt-2 md:mt-0">
           <Wifi size={14} className={isSyncing ? 'text-cyber-blue animate-pulse' : 'text-gray-500'} />
           <span className={isSyncing ? 'text-cyber-blue' : 'text-gray-400'}>
-            {isSyncing ? 'Syncing...' : formatSyncTime(lastSyncTime) || 'Synced'}
+            {isSyncing
+              ? 'Syncing...'
+              : `Next sync in ${nextSyncInSeconds}s`}
           </span>
+          {!isSyncing && lastSyncTime && (
+            <span className="hidden lg:inline text-gray-600">
+              Last: {formatSyncTime(lastSyncTime)}
+            </span>
+          )}
         </div>
       </header>
 
