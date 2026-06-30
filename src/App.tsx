@@ -28,7 +28,7 @@ function App() {
       case 'standings':
         return <Standings matches={matches} teams={teams} />;
       case 'bracket':
-        return <Bracket matches={matches} />;
+        return <Bracket matches={matches} teams={teams} />;
       case 'stats':
         return <Stats matches={matches} teams={teams} onPlayerClick={() => setActiveTab('players')} />;
       case 'players':

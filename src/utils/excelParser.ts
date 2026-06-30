@@ -46,6 +46,15 @@ export interface WorldCupData {
   keyPlayers: KeyPlayer[];
 }
 
+const parseScore = (value: number | string | null | undefined): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+  const text = value.toString().trim();
+  const match = text.match(/^(\d+)(?:\s*\(\d+\))?$/);
+  return match ? Number.parseInt(match[1], 10) : null;
+};
+
 export const parseWorldCupData = async (filePath: string): Promise<WorldCupData> => {
   try {
     const response = await fetch(filePath);
@@ -56,7 +65,12 @@ export const parseWorldCupData = async (filePath: string): Promise<WorldCupData>
     const teamsSheet = workbook.Sheets['Teams'];
     const playersSheet = workbook.Sheets['Key Players'];
 
-    const matches = XLSX.utils.sheet_to_json<Match>(matchesSheet);
+    const rawMatches = XLSX.utils.sheet_to_json<any>(matchesSheet);
+    const matches = rawMatches.map((row: any) => ({
+      ...row,
+      'Team 1 Score': parseScore(row['Team 1 Score']),
+      'Team 2 Score': parseScore(row['Team 2 Score']),
+    })) as Match[];
     const teams = XLSX.utils.sheet_to_json<Team>(teamsSheet);
     const keyPlayers = playersSheet ? XLSX.utils.sheet_to_json<KeyPlayer>(playersSheet) : [];
 

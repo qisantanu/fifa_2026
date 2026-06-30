@@ -1,12 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import type { Match } from '../utils/excelParser';
+import type { Match, Team } from '../utils/excelParser';
 
 interface BracketProps {
   matches: Match[];
+  teams: Team[];
 }
 
-const Bracket: React.FC<BracketProps> = ({ matches }) => {
+const Bracket: React.FC<BracketProps> = ({ matches, teams }) => {
   const knockoutStages = ['Round of 32', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'];
   
   const getMatchesForStage = (stage: string) => {
@@ -39,12 +40,32 @@ const Bracket: React.FC<BracketProps> = ({ matches }) => {
                     >
                       <div className="flex flex-col gap-1 md:gap-2">
                         <div className={`flex justify-between items-center px-2 py-1 rounded ${match.Winner === match['Team 1'] ? 'bg-cyber-magenta/20 text-cyber-magenta' : 'text-gray-400'}`}>
-                          <span className="text-[10px] md:text-xs font-bold uppercase truncate">{match['Team 1']}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {(() => {
+                              const code = teams.find(t => t.TeamName === match['Team 1'])?.FlagCode?.toLowerCase();
+                              return code ? (
+                                <img src={`https://flagcdn.com/w20/${code}.png`} alt={match['Team 1']} className="w-5 h-3 object-cover rounded-sm shrink-0" />
+                              ) : (
+                                <span className="inline-block w-5 h-5 bg-gray-800 text-xs font-bold flex items-center justify-center rounded">{match['Team 1'].substring(0,2)}</span>
+                              );
+                            })()}
+                            <span className="text-[10px] md:text-xs font-bold uppercase truncate">{match['Team 1']}</span>
+                          </div>
                           <span className="font-mono font-bold text-[10px] md:text-sm">{match['Team 1 Score'] ?? '-'}</span>
                         </div>
                         <div className="h-px bg-white/5 mx-2"></div>
                         <div className={`flex justify-between items-center px-2 py-1 rounded ${match.Winner === match['Team 2'] ? 'bg-cyber-magenta/20 text-cyber-magenta' : 'text-gray-400'}`}>
-                          <span className="text-[10px] md:text-xs font-bold uppercase truncate">{match['Team 2']}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {(() => {
+                              const code = teams.find(t => t.TeamName === match['Team 2'])?.FlagCode?.toLowerCase();
+                              return code ? (
+                                <img src={`https://flagcdn.com/w20/${code}.png`} alt={match['Team 2']} className="w-5 h-3 object-cover rounded-sm shrink-0" />
+                              ) : (
+                                <span className="inline-block w-5 h-5 bg-gray-800 text-xs font-bold flex items-center justify-center rounded">{match['Team 2'].substring(0,2)}</span>
+                              );
+                            })()}
+                            <span className="text-[10px] md:text-xs font-bold uppercase truncate">{match['Team 2']}</span>
+                          </div>
                           <span className="font-mono font-bold text-[10px] md:text-sm">{match['Team 2 Score'] ?? '-'}</span>
                         </div>
                       </div>
