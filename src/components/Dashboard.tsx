@@ -174,10 +174,17 @@ const Dashboard: React.FC<DashboardProps> = ({ matches, teams }) => {
                   </div>
                   
                   <div className="flex flex-col items-center shrink-0">
-                    <div className="text-xl md:text-3xl font-black italic text-white flex gap-1 md:gap-2">
-                      <span>{match['Team 1 Score'] ?? '-'}</span>
-                      <span className="text-cyber-blue">:</span>
-                      <span>{match['Team 2 Score'] ?? '-'}</span>
+                    <div className="text-xl md:text-3xl font-black italic text-white flex flex-col gap-2 items-center">
+                      <div className="flex gap-1 md:gap-2 items-center">
+                        <span>{match['Team 1 Score'] ?? '-'}</span>
+                        <span className="text-cyber-blue">:</span>
+                        <span>{match['Team 2 Score'] ?? '-'}</span>
+                      </div>
+                      {(match['Team 1 Shootout'] != null || match['Team 2 Shootout'] != null) && (
+                        <div className="text-[10px] md:text-[12px] font-mono text-cyber-magenta uppercase tracking-[0.18em]">
+                          SHOOTOUT {match['Team 1 Shootout'] ?? 0} - {match['Team 2 Shootout'] ?? 0}
+                        </div>
+                      )}
                     </div>
                     <span className="text-[8px] font-mono text-gray-500 mt-1 uppercase">Final Score</span>
                   </div>

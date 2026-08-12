@@ -14,6 +14,11 @@ const Bracket: React.FC<BracketProps> = ({ matches, teams }) => {
     return matches.filter(m => m.Stage === stage);
   };
 
+  const getBracketScore = (score: number | null | undefined, shootout: number | null | undefined) => {
+    if (score == null) return '-';
+    return shootout != null ? `${score}(${shootout})` : `${score}`;
+  };
+
   return (
     <div className="flex flex-col items-center py-6 md:py-10 space-y-12 md:space-y-20 w-full overflow-hidden">
       <div className="md:hidden text-[10px] font-mono text-cyber-blue animate-pulse mb-2 uppercase tracking-widest">
@@ -51,7 +56,7 @@ const Bracket: React.FC<BracketProps> = ({ matches, teams }) => {
                             })()}
                             <span className="text-[10px] md:text-xs font-bold uppercase truncate">{match['Team 1']}</span>
                           </div>
-                          <span className="font-mono font-bold text-[10px] md:text-sm">{match['Team 1 Score'] ?? '-'}</span>
+                          <span className="font-mono font-bold text-[10px] md:text-sm">{getBracketScore(match['Team 1 Score'], match['Team 1 Shootout'])}</span>
                         </div>
                         <div className="h-px bg-white/5 mx-2"></div>
                         <div className={`flex justify-between items-center px-2 py-1 rounded ${match.Winner === match['Team 2'] ? 'bg-cyber-magenta/20 text-cyber-magenta' : 'text-gray-400'}`}>
@@ -66,7 +71,7 @@ const Bracket: React.FC<BracketProps> = ({ matches, teams }) => {
                             })()}
                             <span className="text-[10px] md:text-xs font-bold uppercase truncate">{match['Team 2']}</span>
                           </div>
-                          <span className="font-mono font-bold text-[10px] md:text-sm">{match['Team 2 Score'] ?? '-'}</span>
+                          <span className="font-mono font-bold text-[10px] md:text-sm">{getBracketScore(match['Team 2 Score'], match['Team 2 Shootout'])}</span>
                         </div>
                       </div>
                       
