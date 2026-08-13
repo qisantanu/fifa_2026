@@ -1,0 +1,19 @@
+{
+  "name": "North Bengal Road Tracker",
+  "short_name": "NB Tracker",
+  "description": "Track North Bengal road trip progress, checkpoints, breaks, and timing from local trip data.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#071013",
+  "theme_color": "#071013",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
