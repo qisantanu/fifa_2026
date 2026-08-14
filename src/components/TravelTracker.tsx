@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCircle2, Clock, Crosshair, Database, LocateFixed, MapPin, RotateCcw, Route } from 'lucide-react';
+import { CheckCircle2, Clock, Crosshair, Database, LocateFixed, MapPin, RefreshCcw, RotateCcw, Route } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { parseTravelData, type RoadLocation } from '../utils/travelParser';
+import { parseTravelWorkbook, type RoadLocation } from '../utils/travelParser';
 import {
   addLocationSample,
   clearLocationHistory,
@@ -249,29 +249,53 @@ const projectOntoRoute = (
   return best;
 };
 
-const estimateEttAtProjection = (projection: RouteProjection | null, locations: RoadLocation[]) => {
+const validEtt = (location: RoadLocation | undefined): location is RoadLocation & { ettMinutes: number } =>
+  location?.ettMinutes !== null && location?.ettMinutes !== undefined;
+
+const estimateEttAtProjection = (
+  projection: RouteProjection | null,
+  locations: RoadLocation[],
+  cumulativeDistances: number[]
+) => {
   if (!projection || locations.length === 0) return null;
 
-  const current = locations[projection.segmentStartIndex];
-  const next = locations[projection.segmentStartIndex + 1];
+  const currentRouteMeters =
+    cumulativeDistances[projection.segmentStartIndex] +
+    ((cumulativeDistances[projection.segmentStartIndex + 1] || cumulativeDistances[projection.segmentStartIndex] || 0) -
+      (cumulativeDistances[projection.segmentStartIndex] || 0)) *
+      projection.segmentProgress;
 
-  if (current?.ettMinutes !== null && current?.ettMinutes !== undefined && next?.ettMinutes !== null && next?.ettMinutes !== undefined) {
-    return current.ettMinutes + (next.ettMinutes - current.ettMinutes) * projection.segmentProgress;
+  const previousValidIndex = locations.findLastIndex((location, index) =>
+    index <= projection.segmentStartIndex + 1 && validEtt(location)
+  );
+  const nextValidIndex = locations.findIndex((location, index) =>
+    index >= projection.segmentStartIndex && validEtt(location)
+  );
+
+  if (previousValidIndex === -1 && nextValidIndex === -1) {
+    return null;
   }
 
-  const validLocations = locations
-    .map((location, index) => ({ location, index }))
-    .filter(({ location }) => location.ettMinutes !== null);
+  if (previousValidIndex === -1) {
+    return locations[nextValidIndex].ettMinutes;
+  }
 
-  if (validLocations.length === 0) return null;
+  if (nextValidIndex === -1) {
+    return locations[previousValidIndex].ettMinutes;
+  }
 
-  const nearest = validLocations.reduce((best, candidate) => {
-    const bestDistance = Math.abs(best.index - projection.nearestIndex);
-    const candidateDistance = Math.abs(candidate.index - projection.nearestIndex);
-    return candidateDistance < bestDistance ? candidate : best;
-  });
+  const previous = locations[previousValidIndex];
+  const next = locations[nextValidIndex];
+  const previousMeters = cumulativeDistances[previousValidIndex] || 0;
+  const nextMeters = cumulativeDistances[nextValidIndex] || previousMeters;
+  if (!validEtt(previous) || !validEtt(next)) return null;
 
-  return nearest.location.ettMinutes;
+  if (previousValidIndex === nextValidIndex || nextMeters === previousMeters) {
+    return previous.ettMinutes;
+  }
+
+  const ratio = Math.max(0, Math.min(1, (currentRouteMeters - previousMeters) / (nextMeters - previousMeters)));
+  return previous.ettMinutes + (next.ettMinutes - previous.ettMinutes) * ratio;
 };
 
 const estimateSegmentTiming = (
@@ -330,11 +354,43 @@ const TravelTracker: React.FC = () => {
   const [secondsUntilTrack, setSecondsUntilTrack] = React.useState(TRACK_INTERVAL_MS / 1000);
   const [reachedCheckpointIds, setReachedCheckpointIds] = React.useState<number[]>([]);
   const [breakIntervals, setBreakIntervals] = React.useState<BreakInterval[]>([]);
+  const [isRouteSyncing, setIsRouteSyncing] = React.useState(false);
+  const [lastRouteSyncTime, setLastRouteSyncTime] = React.useState<Date | null>(null);
+  const [routeSyncMessage, setRouteSyncMessage] = React.useState('Route data not synced yet');
+  const [routeImportStats, setRouteImportStats] = React.useState({
+    totalRows: 0,
+    ignoredRows: 0,
+    lastLocation: '',
+  });
+
+  const loadRouteData = React.useCallback(async () => {
+    setIsRouteSyncing(true);
+    setRouteSyncMessage('Syncing route data...');
+
+    try {
+      const separator = ROUTE_FILE_URL.includes('?') ? '&' : '?';
+      const result = await parseTravelWorkbook(`${ROUTE_FILE_URL}${separator}t=${Date.now()}`);
+      const nextLocations = result.locations;
+      const lastLocation = nextLocations[nextLocations.length - 1]?.roadLocation || '';
+      setLocations(nextLocations);
+      setRouteImportStats({
+        totalRows: result.totalRows,
+        ignoredRows: result.ignoredRows,
+        lastLocation,
+      });
+      setLastRouteSyncTime(new Date());
+      setRouteSyncMessage(`Loaded ${nextLocations.length} road locations`);
+      setStatus(`Route data synced: ${nextLocations.length} locations`);
+    } catch {
+      setRouteSyncMessage('Route data sync failed');
+      setStatus('Could not load travel_north_bengal.xlsx');
+    } finally {
+      setIsRouteSyncing(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    parseTravelData(ROUTE_FILE_URL)
-      .then(setLocations)
-      .catch(() => setStatus('Could not load travel_north_bengal.xlsx'));
+    loadRouteData();
 
     getLocationHistory()
       .then(setHistory)
@@ -342,7 +398,7 @@ const TravelTracker: React.FC = () => {
 
     setReachedCheckpointIds(loadReachedCheckpointIds());
     setBreakIntervals(loadBreakIntervals());
-  }, []);
+  }, [loadRouteData]);
 
   const captureLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
@@ -409,8 +465,8 @@ const TravelTracker: React.FC = () => {
   );
   const breakMinutes = totalBreakMinutes(breakIntervals);
   const currentExpectedMinutes = React.useMemo(
-    () => estimateEttAtProjection(projection, locations),
-    [locations, projection]
+    () => estimateEttAtProjection(projection, locations, cumulativeDistances),
+    [cumulativeDistances, locations, projection]
   );
   const currentTimingStatus = timingStatus(tripElapsedMinutes, currentExpectedMinutes);
   const timingRows = React.useMemo(
@@ -419,6 +475,7 @@ const TravelTracker: React.FC = () => {
   );
   const svgHeight = Y_START * 2 + Math.max(0, Math.ceil(locations.length / POINTS_PER_ROW) - 1) * Y_STEP;
   const reachedCheckpointSet = React.useMemo(() => new Set(reachedCheckpointIds), [reachedCheckpointIds]);
+  const ettLocationCount = locations.filter(validEtt).length;
 
   React.useEffect(() => {
     if (!projection || locations.length === 0) return;
@@ -493,8 +550,27 @@ const TravelTracker: React.FC = () => {
           <div>
             <div className="text-xs uppercase tracking-[0.22em] text-emerald-300 font-mono">North Bengal Road Tracker</div>
             <h1 className="text-2xl md:text-4xl font-black tracking-tight mt-1">Route Progress</h1>
+            <div className="mt-1 text-xs font-mono text-slate-400">
+              {routeSyncMessage}
+              {lastRouteSyncTime && ` at ${formatClock(lastRouteSyncTime.getTime())}`}
+            </div>
+            <div className="mt-1 text-xs font-mono text-slate-500">
+              Excel rows {routeImportStats.totalRows} · ignored {routeImportStats.ignoredRows}
+              {routeImportStats.lastLocation && ` · last ${routeImportStats.lastLocation}`}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void loadRouteData();
+              }}
+              disabled={isRouteSyncing}
+              className="inline-flex items-center gap-2 rounded-md border border-emerald-300/30 px-4 py-2 text-sm font-bold text-emerald-200 transition hover:bg-emerald-300/10"
+            >
+              <RefreshCcw size={16} className={isRouteSyncing ? 'animate-spin' : ''} />
+              {isRouteSyncing ? 'Syncing...' : 'Resync Data'}
+            </button>
             <button
               type="button"
               onClick={() => setIsTracking((value) => !value)}
@@ -544,6 +620,10 @@ const TravelTracker: React.FC = () => {
               <div className="flex items-center gap-2 text-xs font-mono text-emerald-300">
                 <Route size={16} />
                 {locations.length} road locations
+              </div>
+              <div className="flex items-center gap-2 text-xs font-mono text-amber-200">
+                <Clock size={16} />
+                ETT {ettLocationCount}/{locations.length}
               </div>
             </div>
 

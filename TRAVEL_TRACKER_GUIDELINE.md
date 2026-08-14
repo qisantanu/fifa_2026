@@ -41,11 +41,16 @@ Rows without a `Roadlocation` or valid coordinates are ignored. The workbook row
 order is treated as the route order. The added `Home` row is expected to be the
 first row and is displayed as the trip start.
 
+The page loads route data on startup and also provides `Resync Data`. Resync
+fetches the Excel file with a timestamp cache-buster so recent workbook changes
+can appear without restarting the app.
+
 ## Implemented UI
 
 The page has four main areas:
 
 1. Header controls
+   - Resync route data from `travel_north_bengal.xlsx`.
    - Start/Pause location tracking.
    - Clear locally saved GPS history.
 
@@ -206,8 +211,18 @@ If the projected position is between two checkpoints and both checkpoints have
 valid `ETT (Min)`, the expected time is interpolated between those two ETT
 values.
 
-If one side has missing ETT, the logic falls back to the nearest checkpoint with
-valid ETT.
+If one side has missing ETT, the logic searches for the nearest valid ETT
+checkpoint before and after the projected route position, then interpolates by
+route distance between those valid ETT points. If only one valid side exists, it
+uses that known ETT.
+
+The route header also shows ETT coverage, for example:
+
+```text
+ETT 40/40
+```
+
+This means all 40 loaded road locations have valid `ETT (Min)` values.
 
 This is useful during the trip because it does not require reaching two exact
 checkpoints before showing status.
@@ -259,8 +274,8 @@ checkpoint is also marked as reached.
 - If tracking starts after leaving Home, actual elapsed time starts from the
   first stored GPS sample, not the real trip start.
 - IndexedDB history is browser/device specific and is not synced elsewhere.
-- There is no manual checkpoint correction yet.
-- ETT gaps reduce the number of comparable segment rows.
+- ETT gaps reduce segment comparison rows, but live trip status can still
+  estimate expected time by interpolating between nearby valid ETT points.
 
 ## Chrome Testing With Fake GPS
 
@@ -284,30 +299,6 @@ Barasat:     22.7238,    88.4815
 Barojaguli:  22.9567,    88.5448
 ```
 
-## PWA Installation
-
-The app includes basic PWA support for Android installation:
-
-```text
-public/manifest.webmanifest
-public/sw.js
-public/pwa-icon.svg
-```
-
-`src/main.tsx` registers the service worker. The service worker caches the app
-shell and `travel_north_bengal.xlsx`, so the installed app can reopen with the
-last cached version even when the network is unavailable.
-
-On Android Chrome:
-
-1. Open the deployed site.
-2. Open the Chrome menu.
-3. Choose `Add to Home screen` or `Install app`.
-4. Launch from the installed icon.
-
-Geolocation still requires browser/device permission. Location tracking works
-best over HTTPS or on localhost during development.
-
 ## Recommended Future Improvements
 
 1. Add a configurable checkpoint threshold
@@ -326,9 +317,10 @@ best over HTTPS or on localhost during development.
    - Save separate trips instead of one global history list.
    - Useful for comparing multiple journeys.
 
-5. Improve ETT handling
-   - Fill missing ETT values in the workbook.
-   - Or interpolate missing ETT based on distance between known ETT points.
+5. Improve ETT validation
+   - Warn if ETT decreases between route rows.
+   - Highlight rows where ETT is missing or unexpectedly flat.
+   - Show an import summary for ETT coverage and data quality.
 
 6. Add map mode later
    - A real map would be useful for geographic accuracy.

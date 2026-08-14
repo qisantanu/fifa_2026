@@ -11,6 +11,12 @@ export interface RoadLocation {
   lng: number;
 }
 
+export interface TravelParseResult {
+  locations: RoadLocation[];
+  totalRows: number;
+  ignoredRows: number;
+}
+
 const toNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
@@ -28,14 +34,14 @@ const parseCoordinates = (value: unknown): { lat: number; lng: number } | null =
   return { lat, lng };
 };
 
-export const parseTravelData = async (filePath: string): Promise<RoadLocation[]> => {
-  const response = await fetch(filePath);
+export const parseTravelWorkbook = async (filePath: string): Promise<TravelParseResult> => {
+  const response = await fetch(filePath, { cache: 'no-store' });
   const arrayBuffer = await response.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
 
-  return rows
+  const locations = rows
     .map((row, index) => {
       const coordinates = parseCoordinates(row.Coordinates);
       const roadLocation = row.Roadlocation?.toString().trim();
@@ -54,4 +60,15 @@ export const parseTravelData = async (filePath: string): Promise<RoadLocation[]>
       };
     })
     .filter((row): row is RoadLocation => row !== null);
+
+  return {
+    locations,
+    totalRows: rows.length,
+    ignoredRows: rows.length - locations.length,
+  };
+};
+
+export const parseTravelData = async (filePath: string): Promise<RoadLocation[]> => {
+  const result = await parseTravelWorkbook(filePath);
+  return result.locations;
 };
