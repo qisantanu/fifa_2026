@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:github": "cross-env GITHUB_PAGES=true npm run build",
-    "build:s3": "cross-env GITHUB_PAGES=false npm run build",
+    "build": "npm run build:github",
+    "build:github": "tsc -b && cross-env GITHUB_PAGES=true vite build",
+    "build:local": "tsc -b && cross-env GITHUB_PAGES=false vite build",
+    "build:s3": "npm run build:local",
     "lint": "eslint .",
     "preview": "vite preview"
   },

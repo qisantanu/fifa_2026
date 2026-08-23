@@ -38,21 +38,35 @@ Follow these steps to get the project running on your local machine:
 
 ### Data Management
 - All tournament data is stored in `public/data/world_cup_2026.xlsx`.
-- Open the file in Excel, update scores or scorers, and save. 
+- Open the file in Excel, update scores or scorers, and save.
 - Refresh the browser to see the live updates.
 
 ## 📦 Building for Production
 
-To create an optimized production build:
+For GitHub Pages deployment at `https://qisantanu.github.io/fifa2026/`, build with:
+
 ```bash
-npm run build
+npm run build:github
 ```
-The output will be in the `dist/` directory.
+
+This generates asset paths under `/fifa2026/`, which is required for the GitHub Pages repo path.
+
+Then copy the `dist/` contents to the deployment repo and push:
+
+```text
+https://github.com/qisantanu/fifa2026
+```
+
+For a root-path/local production build, use:
+
+```bash
+npm run build:local
+```
 
 ## 📜 License
 
 **Proprietary Software - All Rights Reserved.**
 
-This software is for private use only. Unauthorized copying, distribution, modification, or use of this code, via any medium, is strictly prohibited. 
+This software is for private use only. Unauthorized copying, distribution, modification, or use of this code, via any medium, is strictly prohibited.
 
 Copyright (c) 2026 Santanub.

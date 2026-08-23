@@ -9,6 +9,7 @@ export interface RoadLocation {
   etsKm: number | null;
   lat: number;
   lng: number;
+  type: string;
 }
 
 export interface TravelParseResult {
@@ -57,6 +58,7 @@ export const parseTravelWorkbook = async (filePath: string): Promise<TravelParse
         etsKm: toNumber(row['ETS (KM)']),
         lat: coordinates.lat,
         lng: coordinates.lng,
+        type: row.Type?.toString().trim() || '',
       };
     })
     .filter((row): row is RoadLocation => row !== null);

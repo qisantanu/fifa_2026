@@ -29,8 +29,18 @@ interface BreakInterval {
   end: number | null;
 }
 
+interface RouteFileOption {
+  label: string;
+  file: string;
+}
+
+type RoutedLocationSample = LocationSample & {
+  routeFile?: string;
+};
+
 const TRACK_INTERVAL_MS = 30000;
-const ROUTE_FILE_URL = `${import.meta.env.BASE_URL}data/travel_north_bengal.xlsx`;
+const DEFAULT_ROUTE_FILE = 'travel_north_bengal.xlsx';
+const ROUTE_MANIFEST_URL = `${import.meta.env.BASE_URL}data/route-files.json`;
 const REACHED_CHECKPOINTS_KEY = 'north-bengal-reached-checkpoints';
 const BREAK_INTERVALS_KEY = 'north-bengal-break-intervals';
 const CHECKPOINT_REACHED_THRESHOLD_METERS = 1500;
@@ -112,25 +122,27 @@ const formatClock = (timestamp: number) =>
     second: '2-digit',
   });
 
-const loadReachedCheckpointIds = () => {
+const routeStorageKey = (key: string, routeFile: string) => `${key}:${routeFile}`;
+
+const loadReachedCheckpointIds = (routeFile: string) => {
   try {
-    const parsed = JSON.parse(localStorage.getItem(REACHED_CHECKPOINTS_KEY) || '[]');
+    const parsed = JSON.parse(localStorage.getItem(routeStorageKey(REACHED_CHECKPOINTS_KEY, routeFile)) || '[]');
     return Array.isArray(parsed) ? parsed.filter((value) => Number.isFinite(value)) : [];
   } catch {
     return [];
   }
 };
 
-const saveReachedCheckpointIds = (ids: number[]) => {
-  localStorage.setItem(REACHED_CHECKPOINTS_KEY, JSON.stringify(ids));
+const saveReachedCheckpointIds = (ids: number[], routeFile: string) => {
+  localStorage.setItem(routeStorageKey(REACHED_CHECKPOINTS_KEY, routeFile), JSON.stringify(ids));
 };
 
 const normalizeReachedCheckpointIds = (ids: number[]) =>
   Array.from(new Set(ids)).sort((a, b) => a - b);
 
-const loadBreakIntervals = (): BreakInterval[] => {
+const loadBreakIntervals = (routeFile: string): BreakInterval[] => {
   try {
-    const parsed = JSON.parse(localStorage.getItem(BREAK_INTERVALS_KEY) || '[]');
+    const parsed = JSON.parse(localStorage.getItem(routeStorageKey(BREAK_INTERVALS_KEY, routeFile)) || '[]');
     if (!Array.isArray(parsed)) return [];
 
     return parsed.filter((interval) =>
@@ -143,8 +155,8 @@ const loadBreakIntervals = (): BreakInterval[] => {
   }
 };
 
-const saveBreakIntervals = (intervals: BreakInterval[]) => {
-  localStorage.setItem(BREAK_INTERVALS_KEY, JSON.stringify(intervals));
+const saveBreakIntervals = (intervals: BreakInterval[], routeFile: string) => {
+  localStorage.setItem(routeStorageKey(BREAK_INTERVALS_KEY, routeFile), JSON.stringify(intervals));
 };
 
 const breakOverlapMs = (breakIntervals: BreakInterval[], start: number, end: number) =>
@@ -251,6 +263,9 @@ const projectOntoRoute = (
 
 const validEtt = (location: RoadLocation | undefined): location is RoadLocation & { ettMinutes: number } =>
   location?.ettMinutes !== null && location?.ettMinutes !== undefined;
+
+const isTollLocation = (location: RoadLocation) =>
+  location.type.trim().toLowerCase() === 'toll';
 
 const estimateEttAtProjection = (
   projection: RouteProjection | null,
@@ -362,14 +377,19 @@ const TravelTracker: React.FC = () => {
     ignoredRows: 0,
     lastLocation: '',
   });
+  const [routeFiles, setRouteFiles] = React.useState<RouteFileOption[]>([
+    { label: 'North Bengal', file: DEFAULT_ROUTE_FILE },
+  ]);
+  const [selectedRouteFile, setSelectedRouteFile] = React.useState(DEFAULT_ROUTE_FILE);
 
   const loadRouteData = React.useCallback(async () => {
     setIsRouteSyncing(true);
     setRouteSyncMessage('Syncing route data...');
 
     try {
-      const separator = ROUTE_FILE_URL.includes('?') ? '&' : '?';
-      const result = await parseTravelWorkbook(`${ROUTE_FILE_URL}${separator}t=${Date.now()}`);
+      const routeFileUrl = `${import.meta.env.BASE_URL}data/${selectedRouteFile}`;
+      const separator = routeFileUrl.includes('?') ? '&' : '?';
+      const result = await parseTravelWorkbook(`${routeFileUrl}${separator}t=${Date.now()}`);
       const nextLocations = result.locations;
       const lastLocation = nextLocations[nextLocations.length - 1]?.roadLocation || '';
       setLocations(nextLocations);
@@ -379,26 +399,49 @@ const TravelTracker: React.FC = () => {
         lastLocation,
       });
       setLastRouteSyncTime(new Date());
-      setRouteSyncMessage(`Loaded ${nextLocations.length} road locations`);
+      setRouteSyncMessage(`Loaded ${nextLocations.length} road locations from ${selectedRouteFile}`);
       setStatus(`Route data synced: ${nextLocations.length} locations`);
     } catch {
+      setLocations([]);
+      setRouteImportStats({ totalRows: 0, ignoredRows: 0, lastLocation: '' });
       setRouteSyncMessage('Route data sync failed');
-      setStatus('Could not load travel_north_bengal.xlsx');
+      setStatus(`Could not load ${selectedRouteFile}`);
     } finally {
       setIsRouteSyncing(false);
     }
-  }, []);
+  }, [selectedRouteFile]);
 
   React.useEffect(() => {
+    fetch(`${ROUTE_MANIFEST_URL}?t=${Date.now()}`, { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((files: RouteFileOption[]) => {
+        const routeOnlyFiles = files.filter((file) => file.file.endsWith('.xlsx'));
+        if (routeOnlyFiles.length > 0) {
+          setRouteFiles(routeOnlyFiles);
+          if (!routeOnlyFiles.some((file) => file.file === selectedRouteFile)) {
+            setSelectedRouteFile(routeOnlyFiles[0].file);
+          }
+        }
+      })
+      .catch(() => setStatus('Could not load route file list; using default route'));
+  }, [selectedRouteFile]);
+
+  React.useEffect(() => {
+    setIsTracking(false);
+    setHistory([]);
+    setReachedCheckpointIds(loadReachedCheckpointIds(selectedRouteFile));
+    setBreakIntervals(loadBreakIntervals(selectedRouteFile));
     loadRouteData();
 
     getLocationHistory()
-      .then(setHistory)
+      .then((samples) => {
+        setHistory(samples.filter((sample) => {
+          const routeFile = (sample as RoutedLocationSample).routeFile;
+          return routeFile === selectedRouteFile || (!routeFile && selectedRouteFile === DEFAULT_ROUTE_FILE);
+        }));
+      })
       .catch(() => setStatus('Could not load saved location history'));
-
-    setReachedCheckpointIds(loadReachedCheckpointIds());
-    setBreakIntervals(loadBreakIntervals());
-  }, [loadRouteData]);
+  }, [loadRouteData, selectedRouteFile]);
 
   const captureLocation = React.useCallback(() => {
     if (!navigator.geolocation) {
@@ -410,6 +453,7 @@ const TravelTracker: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const sample = {
+          routeFile: selectedRouteFile,
           timestamp: Date.now(),
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -493,7 +537,7 @@ const TravelTracker: React.FC = () => {
         return current;
       }
 
-      saveReachedCheckpointIds(next);
+      saveReachedCheckpointIds(next, selectedRouteFile);
       return next;
     });
   }, [locations, nearestCheckpointDistance, projection]);
@@ -502,7 +546,7 @@ const TravelTracker: React.FC = () => {
     await clearLocationHistory();
     setHistory([]);
     setBreakIntervals([]);
-    saveBreakIntervals([]);
+    saveBreakIntervals([], selectedRouteFile);
     setStatus('Location history cleared');
   };
 
@@ -516,7 +560,7 @@ const TravelTracker: React.FC = () => {
           ? current.map((interval, index) => index === openIndex ? { ...interval, end: now } : interval)
           : [...current, { start: now, end: null }];
 
-      saveBreakIntervals(next);
+      saveBreakIntervals(next, selectedRouteFile);
       return next;
     });
 
@@ -527,19 +571,19 @@ const TravelTracker: React.FC = () => {
     const ids = locations.slice(0, index + 1).map((location) => location.id);
     const next = normalizeReachedCheckpointIds([...reachedCheckpointIds, ...ids]);
     setReachedCheckpointIds(next);
-    saveReachedCheckpointIds(next);
+    saveReachedCheckpointIds(next, selectedRouteFile);
   };
 
   const undoReachedFrom = (index: number) => {
     const idsToRemove = new Set(locations.slice(index).map((location) => location.id));
     const next = reachedCheckpointIds.filter((id) => !idsToRemove.has(id));
     setReachedCheckpointIds(next);
-    saveReachedCheckpointIds(next);
+    saveReachedCheckpointIds(next, selectedRouteFile);
   };
 
   const clearReachedCheckpoints = () => {
     setReachedCheckpointIds([]);
-    saveReachedCheckpointIds([]);
+    saveReachedCheckpointIds([], selectedRouteFile);
     setStatus('Checkpoint marks cleared');
   };
 
@@ -560,6 +604,20 @@ const TravelTracker: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-sm font-bold text-slate-200">
+              <span className="text-xs uppercase tracking-wide text-slate-400">Route</span>
+              <select
+                value={selectedRouteFile}
+                onChange={(event) => setSelectedRouteFile(event.target.value)}
+                className="bg-[#071013] text-emerald-200 outline-none"
+              >
+                {routeFiles.map((routeFile) => (
+                  <option key={routeFile.file} value={routeFile.file}>
+                    {routeFile.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               onClick={() => {
@@ -625,6 +683,10 @@ const TravelTracker: React.FC = () => {
                 <Clock size={16} />
                 ETT {ettLocationCount}/{locations.length}
               </div>
+              <div className="flex items-center gap-2 text-xs font-mono text-amber-200">
+                <span className="h-3 w-3 rotate-45 rounded-sm border border-amber-100 bg-amber-500" />
+                {locations.filter(isTollLocation).length} toll
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -642,20 +704,40 @@ const TravelTracker: React.FC = () => {
                   const isStart = index === 0;
                   const isDestination = index === locations.length - 1;
                   const isReached = reachedCheckpointSet.has(location.id);
-                  const markerFill = isNearest ? '#fbbf24' : isReached ? '#10b981' : isDestination ? '#fb7185' : '#071013';
-                  const markerStroke = isNearest ? '#fef3c7' : isReached || isStart ? '#d1fae5' : isDestination ? '#ffe4e6' : '#34d399';
+                  const isToll = isTollLocation(location);
+                  const markerFill = isNearest ? '#fbbf24' : isToll ? '#f59e0b' : isReached ? '#10b981' : isDestination ? '#fb7185' : '#071013';
+                  const markerStroke = isNearest ? '#fef3c7' : isToll ? '#fde68a' : isReached || isStart ? '#d1fae5' : isDestination ? '#ffe4e6' : '#34d399';
 
                   return (
                     <g key={location.id}>
-                      <circle cx={point.x} cy={point.y} r={isNearest ? 14 : isStart || isDestination ? 12 : 9} fill={markerFill} stroke={markerStroke} strokeWidth="3" />
+                      {isToll ? (
+                        <rect
+                          x={point.x - (isNearest ? 13 : 10)}
+                          y={point.y - (isNearest ? 13 : 10)}
+                          width={isNearest ? 26 : 20}
+                          height={isNearest ? 26 : 20}
+                          rx="4"
+                          fill={markerFill}
+                          stroke={markerStroke}
+                          strokeWidth="3"
+                          transform={`rotate(45 ${point.x} ${point.y})`}
+                        />
+                      ) : (
+                        <circle cx={point.x} cy={point.y} r={isNearest ? 14 : isStart || isDestination ? 12 : 9} fill={markerFill} stroke={markerStroke} strokeWidth="3" />
+                      )}
                       <text x={point.x} y={point.y + 4} textAnchor="middle" className="fill-white text-[10px] font-bold">
                         {isStart ? 'H' : isDestination ? 'F' : index + 1}
                       </text>
                       <text x={point.x} y={point.y + 28} textAnchor="middle" className="fill-slate-300 text-[11px] font-semibold">
                         {location.roadLocation.length > 16 ? `${location.roadLocation.slice(0, 15)}.` : location.roadLocation}
                       </text>
+                      {isToll && (
+                        <text x={point.x} y={point.y - 20} textAnchor="middle" className="fill-amber-100 text-[10px] font-black uppercase">
+                          Toll
+                        </text>
+                      )}
                       {(isStart || isDestination) && (
-                        <text x={point.x} y={point.y - 20} textAnchor="middle" className="fill-emerald-100 text-[10px] font-black uppercase">
+                        <text x={point.x} y={point.y - (isToll ? 34 : 20)} textAnchor="middle" className="fill-emerald-100 text-[10px] font-black uppercase">
                           {isStart ? 'Start' : 'Finish'}
                         </text>
                       )}
@@ -793,6 +875,7 @@ const TravelTracker: React.FC = () => {
                     <th className="text-left p-3">#</th>
                     <th className="text-left p-3">Roadlocation</th>
                     <th className="text-left p-3">RailStation</th>
+                    <th className="text-left p-3">Type</th>
                     <th className="text-right p-3">Distance</th>
                     <th className="text-right p-3">ETT</th>
                     <th className="text-right p-3">Checkpoint</th>
@@ -807,6 +890,15 @@ const TravelTracker: React.FC = () => {
                         <td className="p-3 text-slate-500">{index + 1}</td>
                         <td className="p-3 font-semibold">{location.roadLocation}</td>
                         <td className="p-3 text-slate-400">{location.railStation || '-'}</td>
+                        <td className="p-3">
+                          {isTollLocation(location) ? (
+                            <span className="inline-flex items-center rounded border border-amber-200/30 bg-amber-300/15 px-2 py-0.5 text-xs font-black uppercase text-amber-100">
+                              Toll
+                            </span>
+                          ) : (
+                            <span className="text-slate-600">-</span>
+                          )}
+                        </td>
                         <td className="p-3 text-right font-mono">{location.distanceFromHome === null ? '-' : `${location.distanceFromHome} km`}</td>
                         <td className="p-3 text-right font-mono">{formatDuration(location.ettMinutes)}</td>
                         <td className="p-3 text-right">
